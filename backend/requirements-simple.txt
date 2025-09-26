@@ -1,0 +1,6 @@
+# Ultra proste requirements - tylko najważniejsze pakiety
+fastapi
+uvicorn[standard]
+firebase_admin
+pydantic
+python-multipart

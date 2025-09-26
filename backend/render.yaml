@@ -1,15 +1,15 @@
 services:
   - type: web
-    name: next-reviews-booster-backend
+    name: next-review-booster
     env: python
     plan: free
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: cd backend && python backend_main.py
+    buildCommand: pip install -r requirements-wheels.txt
+    startCommand: python backend_main.py
     envVars:
       - key: PORT
         value: 8000
       - key: PYTHON_VERSION
-        value: 3.12.7
+        value: 3.11.0
       - key: FIREBASE_PROJECT_ID
         value: next-reviews-9d19c
       - key: FIREBASE_PRIVATE_KEY_ID
