@@ -22,14 +22,18 @@
   opacity: 0.9;
 }
 
-.qr-controls {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
+/* Główny kontener z layoutem obok siebie */
+.qr-main-content {
+  display: flex;
   gap: 2rem;
-  margin-bottom: 3rem;
   max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto 3rem;
+  align-items: flex-start;
+}
+
+.qr-controls {
+  flex: 1;
+  min-width: 0; /* Pozwala na skurczenie */
 }
 
 .client-selection {
@@ -368,6 +372,115 @@
   }
   
   .results-actions {
+    justify-content: center;
+  }
+}
+
+/* Sekcja wyświetlania kodu QR obok panelu */
+.qr-display {
+  flex: 1;
+  min-width: 0;
+  background: white;
+  border-radius: 15px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  margin-left: 2rem;
+}
+
+.qr-display-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.qr-display-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.qr-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.qr-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.qr-preview-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+}
+
+.qr-preview-card .qr-image {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 2px solid #e0e0e0;
+}
+
+.qr-preview-card .qr-image img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 5px;
+}
+
+.qr-preview-card .qr-info {
+  text-align: center;
+}
+
+.qr-preview-card .qr-info h4 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.qr-preview-card .qr-url {
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: #666;
+  word-break: break-all;
+  margin: 0.5rem 0;
+}
+
+.qr-preview-card .qr-description {
+  font-size: 0.9rem;
+  color: #888;
+  margin: 0.5rem 0;
+}
+
+/* Responsywność dla nowego layoutu */
+@media (max-width: 1024px) {
+  .qr-main-content {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .qr-display {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .qr-display-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .qr-actions {
     justify-content: center;
   }
 }

@@ -116,80 +116,83 @@ const QRCodePage = () => {
           <p>Wygeneruj kody QR z linkami do wystawiania opinii</p>
         </div>
 
-        {/* Panel ustawień */}
-        <div className="qr-controls">
-          <div className="qr-settings">
-            <h3>Generuj kod QR dla firmy</h3>
-            <p>Kod QR będzie kierował klientów do formularza logowania, gdzie będą mogli podać swoje dane i przejść do formularza opinii.</p>
-            
-            <div className="setting-group">
-              <label htmlFor="qrSize">Rozmiar kodu QR:</label>
-              <select 
-                id="qrSize" 
-                value={qrSize} 
-                onChange={(e) => setQrSize(parseInt(e.target.value))}
-              >
-                <option value={150}>Mały (150px)</option>
-                <option value={200}>Średni (200px)</option>
-                <option value={300}>Duży (300px)</option>
-                <option value={400}>Bardzo duży (400px)</option>
-              </select>
-            </div>
-            
-            <button 
-              className="btn btn-primary"
-              onClick={generateQRCodes}
-              disabled={generating}
-            >
-              {generating ? 'Generowanie...' : 'Generuj kod QR'}
-            </button>
-          </div>
-        </div>
-
-        {/* Wyświetlanie kodów QR */}
-        {qrCodes.length > 0 && (
-          <div className="qr-results">
-            <div className="results-header">
-              <h3>Wygenerowane kody QR ({qrCodes.length})</h3>
-              <div className="results-actions">
-                <button className="btn btn-secondary" onClick={printQRCodes}>
-                  🖨️ Drukuj
-                </button>
-                <button 
-                  className="btn btn-secondary"
-                  onClick={() => setQrCodes([])}
+        {/* Panel główny - ustawienia i kod QR obok siebie */}
+        <div className="qr-main-content">
+          {/* Panel ustawień */}
+          <div className="qr-controls">
+            <div className="qr-settings">
+              <h3>Generuj kod QR dla firmy</h3>
+              <p>Kod QR będzie kierował klientów do formularza logowania, gdzie będą mogli podać swoje dane i przejść do formularza opinii.</p>
+              
+              <div className="setting-group">
+                <label htmlFor="qrSize">Rozmiar kodu QR:</label>
+                <select 
+                  id="qrSize" 
+                  value={qrSize} 
+                  onChange={(e) => setQrSize(parseInt(e.target.value))}
                 >
-                  ✕ Zamknij
-                </button>
+                  <option value={150}>Mały (150px)</option>
+                  <option value={200}>Średni (200px)</option>
+                  <option value={300}>Duży (300px)</option>
+                  <option value={400}>Bardzo duży (400px)</option>
+                </select>
+              </div>
+              
+              <button 
+                className="btn btn-primary"
+                onClick={generateQRCodes}
+                disabled={generating}
+              >
+                {generating ? 'Generowanie...' : 'Generuj kod QR'}
+              </button>
+            </div>
+          </div>
+
+          {/* Wyświetlanie kodu QR obok panelu */}
+          {qrCodes.length > 0 && (
+            <div className="qr-display">
+              <div className="qr-display-header">
+                <h3>Wygenerowany kod QR</h3>
+                <div className="qr-actions">
+                  <button className="btn btn-secondary" onClick={printQRCodes}>
+                    🖨️ Drukuj
+                  </button>
+                  <button 
+                    className="btn btn-secondary"
+                    onClick={() => setQrCodes([])}
+                  >
+                    ✕ Zamknij
+                  </button>
+                </div>
+              </div>
+              
+              <div className="qr-preview">
+                {qrCodes.map((qrCode, index) => (
+                  <div key={index} className="qr-preview-card">
+                    <div className="qr-image">
+                      <img 
+                        src={qrCode.qr_code} 
+                        alt={`QR Code for ${qrCode.company_name}`}
+                        style={{ width: qrSize, height: qrSize }}
+                      />
+                    </div>
+                    <div className="qr-info">
+                      <h4>{qrCode.company_name}</h4>
+                      <p className="qr-url">{qrCode.review_url}</p>
+                      <p className="qr-description">Kod QR kieruje klientów do formularza logowania</p>
+                      <button 
+                        className="btn btn-small"
+                        onClick={() => downloadQRCode(qrCode, qrCode.company_name)}
+                      >
+                        📥 Pobierz
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-            
-            <div className="qr-grid">
-              {qrCodes.map((qrCode, index) => (
-                <div key={index} className="qr-card">
-                  <div className="qr-image">
-                    <img 
-                      src={qrCode.qr_code} 
-                      alt={`QR Code for ${qrCode.company_name}`}
-                      style={{ width: qrSize, height: qrSize }}
-                    />
-                  </div>
-                  <div className="qr-info">
-                    <h4>{qrCode.company_name}</h4>
-                    <p className="qr-url">{qrCode.review_url}</p>
-                    <p className="qr-description">Kod QR kieruje klientów do formularza logowania</p>
-                    <button 
-                      className="btn btn-small"
-                      onClick={() => downloadQRCode(qrCode, qrCode.company_name)}
-                    >
-                      📥 Pobierz
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
