@@ -86,7 +86,7 @@ const LoginForm = ({ onLoginSuccess, onSwitchToRegister }) => {
       <div className="auth-form">
         <div className="auth-header">
           <h2>Zaloguj się</h2>
-          <p>Witaj z powrotem w NextReviews!</p>
+          <p>Witaj z powrotem w next review booster!</p>
         </div>
 
         {error && (

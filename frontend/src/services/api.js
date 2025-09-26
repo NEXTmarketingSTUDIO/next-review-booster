@@ -3,7 +3,7 @@ import axios from 'axios';
 // Konfiguracja axios dla komunikacji z FastAPI
 const api = axios.create({
   baseURL: '/api', // Vite proxy przekieruje to na http://localhost:8000
-  timeout: 10000,
+  timeout: 15000, // Zwiększony timeout dla Firebase
   headers: {
     'Content-Type': 'application/json',
   },
@@ -97,6 +97,64 @@ export const apiService = {
   async getProduct(id) {
     const response = await api.get(`/products/${id}`);
     return response.data;
+  },
+
+  // Endpointy dla klientów
+  async getClients(username) {
+    console.log('🌐 API: Pobieranie klientów dla:', username);
+    try {
+      const response = await api.get(`/clients/${username}`);
+      console.log('✅ API: Odpowiedź otrzymana:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ API: Błąd pobierania klientów:', error);
+      throw error;
+    }
+  },
+
+  async getClient(username, clientId) {
+    const response = await api.get(`/clients/${username}/${clientId}`);
+    return response.data;
+  },
+
+  async createClient(username, clientData) {
+    const response = await api.post(`/clients/${username}`, clientData);
+    return response.data;
+  },
+
+  async updateClient(username, clientId, clientData) {
+    const response = await api.put(`/clients/${username}/${clientId}`, clientData);
+    return response.data;
+  },
+
+  async deleteClient(username, clientId) {
+    const response = await api.delete(`/clients/${username}/${clientId}`);
+    return response.data;
+  },
+
+  // Endpointy dla ustawień użytkownika
+  async getUserSettings(username) {
+    console.log('⚙️ API: Pobieranie ustawień dla:', username);
+    try {
+      const response = await api.get(`/settings/${username}`);
+      console.log('✅ API: Ustawienia otrzymane:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ API: Błąd pobierania ustawień:', error);
+      throw error;
+    }
+  },
+
+  async saveUserSettings(username, settings) {
+    console.log('💾 API: Zapisywanie ustawień dla:', username);
+    try {
+      const response = await api.put(`/settings/${username}`, settings);
+      console.log('✅ API: Ustawienia zapisane:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ API: Błąd zapisywania ustawień:', error);
+      throw error;
+    }
   }
 };
 
