@@ -7,6 +7,7 @@ const ClientLoginPage = () => {
   const [formData, setFormData] = useState({
     name: '',
     surname: '',
+    email: '',
     phone: ''
   });
   const [loading, setLoading] = useState(false);
@@ -23,7 +24,7 @@ const ClientLoginPage = () => {
     e.preventDefault();
     
     // Walidacja
-    if (!formData.name.trim() || !formData.surname.trim() || !formData.phone.trim()) {
+    if (!formData.name.trim() || !formData.surname.trim() || !formData.email.trim() || !formData.phone.trim()) {
       setError('Proszę wypełnić wszystkie pola');
       return;
     }
@@ -95,6 +96,19 @@ const ClientLoginPage = () => {
                 value={formData.surname}
                 onChange={handleInputChange}
                 placeholder="Wprowadź swoje nazwisko"
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="surname">Email *</label>
+              <input
+                type="text"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="Wprowadź swój adres email"
                 required
               />
             </div>

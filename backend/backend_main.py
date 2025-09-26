@@ -729,8 +729,9 @@ async def generate_company_qr_code(username: str, request: QRCodeRequest):
             print(f"⚠️ Nie można pobrać nazwy firmy: {e}")
         
         # Generuj URL do formularza logowania klienta
-        # Sprawdź czy frontend działa na porcie 3002 (z terminala widzę, że tak)
-        client_login_url = f"http://localhost:3002/client-login"
+        # Użyj zmiennej środowiskowej lub domyślnego localhost
+        base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+        client_login_url = f"{base_url}/client-login"
         
         # Generuj kod QR z lepszą konfiguracją
         qr_data = generate_qr_code(client_login_url, request.size)
@@ -763,7 +764,9 @@ async def get_qr_code_image(review_code: str, size: int = 200):
             raise HTTPException(status_code=400, detail="Rozmiar kodu QR musi być między 50 a 1000 pikseli")
         
         # Generuj URL do formularza recenzji
-        review_url = f"http://localhost:3002/review/{review_code}"
+        # Użyj zmiennej środowiskowej lub domyślnego localhost
+        base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+        review_url = f"{base_url}/review/{review_code}"
         
         # Generuj kod QR z lepszą konfiguracją
         qr_data = generate_qr_code(review_url, size)

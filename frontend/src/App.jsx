@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { apiService } from './services/api';
 import useAuth from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -13,7 +13,8 @@ import QRCodePage from './pages/QRCodePage';
 import ClientLoginPage from './pages/ClientLoginPage';
 import './App.css';
 
-function App() {
+// Komponent wewnętrzny z dostępem do useLocation
+function AppContent() {
   const [healthData, setHealthData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,6 +22,11 @@ function App() {
   
   // Hook autoryzacji Firebase
   const { user, loading: authLoading } = useAuth();
+  const location = useLocation();
+
+  // Strony bez nawigacji
+  const noNavRoutes = ['/client-login', '/review'];
+  const shouldShowNav = !noNavRoutes.some(route => location.pathname.startsWith(route));
 
   useEffect(() => {
     checkHealth();
@@ -48,9 +54,9 @@ function App() {
   };
 
   return (
-    <Router>
-      <div className="App">
-        {/* Nawigacja */}
+    <div className="App">
+      {/* Nawigacja - tylko dla stron z nawigacją */}
+      {shouldShowNav && (
         <nav className="navigation">
           <div className="container">
             <div className="nav-content">
@@ -87,9 +93,10 @@ function App() {
             </div>
           </div>
         </nav>
+      )}
 
-        {/* Główna zawartość */}
-        <Routes>
+      {/* Główna zawartość */}
+      <Routes>
           <Route path="/" element={
             <section className="hero">
         <div className="hero-background">
@@ -208,8 +215,16 @@ function App() {
           
           <Route path="/client-login" element={<ClientLoginPage />} />
           <Route path="/review/:reviewCode" element={<ReviewFormPage />} />
-        </Routes>
-      </div>
+      </Routes>
+    </div>
+  );
+}
+
+// Główny komponent App z Router
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   );
 }
