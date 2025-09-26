@@ -2,7 +2,9 @@ import axios from 'axios';
 
 // Konfiguracja axios dla komunikacji z FastAPI
 const api = axios.create({
-  baseURL: '/api', // Vite proxy przekieruje to na http://localhost:8000
+  baseURL: import.meta.env.VITE_API_URL || (process.env.NODE_ENV === 'production' 
+    ? 'https://next-review-booster.onrender.com' 
+    : '/api'), // Vite proxy przekieruje to na http://localhost:8000 w development
   timeout: 15000, // Zwiększony timeout dla Firebase
   headers: {
     'Content-Type': 'application/json',
