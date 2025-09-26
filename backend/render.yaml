@@ -3,7 +3,7 @@ services:
     name: next-review-booster
     env: python
     plan: free
-    buildCommand: pip install -r requirements-wheels.txt
+    buildCommand: pip install -r requirements-ultra-simple.txt
     startCommand: python backend_main.py
     envVars:
       - key: PORT

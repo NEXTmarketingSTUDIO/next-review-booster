@@ -1,0 +1,6 @@
+# Ultra proste requirements - bez wersji
+fastapi
+uvicorn
+firebase_admin
+pydantic
+python-multipart
