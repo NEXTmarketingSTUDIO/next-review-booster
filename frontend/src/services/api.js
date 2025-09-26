@@ -4,7 +4,7 @@ import axios from 'axios';
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || (process.env.NODE_ENV === 'production' 
     ? 'https://next-review-booster.onrender.com' 
-    : '/api'), // Vite proxy przekieruje to na http://localhost:8000 w development
+    : '/api'), // Użyj Vite proxy w development
   timeout: 15000, // Zwiększony timeout dla Firebase
   headers: {
     'Content-Type': 'application/json',
@@ -155,6 +155,36 @@ export const apiService = {
       return response.data;
     } catch (error) {
       console.error('❌ API: Błąd zapisywania ustawień:', error);
+      throw error;
+    }
+  },
+
+  // Endpointy dla kodów QR
+  async generateCompanyQRCode(username, size = 200) {
+    console.log('🔲 API: Generowanie kodu QR dla firmy:', username);
+    try {
+      const response = await api.post(`/qrcode/${username}`, {
+        size: size,
+        format: 'png'
+      });
+      console.log('✅ API: Kod QR wygenerowany:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ API: Błąd generowania kodu QR:', error);
+      throw error;
+    }
+  },
+
+  async getQRCodeImage(reviewCode, size = 200) {
+    console.log('🔲 API: Pobieranie obrazu kodu QR dla:', reviewCode);
+    try {
+      const response = await api.get(`/qrcode/${reviewCode}?size=${size}`, {
+        responseType: 'blob'
+      });
+      console.log('✅ API: Obraz kodu QR pobrany');
+      return response.data;
+    } catch (error) {
+      console.error('❌ API: Błąd pobierania obrazu kodu QR:', error);
       throw error;
     }
   }

@@ -9,6 +9,10 @@ from firebase_admin import credentials, firestore
 import os
 import secrets
 import string
+import qrcode
+import io
+import base64
+from fastapi.responses import StreamingResponse
 
 # Inicjalizacja Firebase Admin
 try:
@@ -149,11 +153,67 @@ class ReviewResponse(BaseModel):
     success: bool
     message: str
 
+# Modele dla kodów QR
+class QRCodeRequest(BaseModel):
+    size: int = 200
+    format: str = "png"
+
+class QRCodeResponse(BaseModel):
+    qr_code: str
+    company_name: str
+    review_url: str
+
+# Modele dla logowania klienta
+class ClientLoginRequest(BaseModel):
+    name: str
+    surname: str
+    phone: str
+
+class ClientLoginResponse(BaseModel):
+    review_code: str
+    message: str
+
 # Funkcja do generowania unikalnego kodu recenzji
 def generate_review_code():
     """Generuje unikalny kod recenzji (10 znaków alfanumerycznych)"""
     alphabet = string.ascii_lowercase + string.digits
     return ''.join(secrets.choice(alphabet) for _ in range(10))
+
+# Funkcja do generowania kodu QR
+def generate_qr_code(data: str, size: int = 200) -> bytes:
+    """Generuje kod QR jako bytes z lepszą konfiguracją zgodnie z dokumentacją"""
+    # Oblicz box_size na podstawie żądanego rozmiaru
+    # Dla wersji 1 (21x21) z border=4, całkowity rozmiar to (21 + 2*4) * box_size
+    # Dla rozmiaru 200px: box_size = 200 / (21 + 8) = ~6.9, zaokrąglamy do 7
+    box_size = max(4, size // 30)  # Minimum 4px na box
+    
+    qr = qrcode.QRCode(
+        version=None,  # Automatyczny wybór wersji zgodnie z dokumentacją
+        error_correction=qrcode.constants.ERROR_CORRECT_M,  # 15% korekta błędów (domyślne)
+        box_size=box_size,
+        border=4,  # Minimalny border zgodnie ze specyfikacją
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+    
+    # Generuj obraz z lepszymi kolorami
+    img = qr.make_image(
+        fill_color="black", 
+        back_color="white"
+    )
+    
+    # Jeśli obraz jest za duży, przeskaluj go
+    if img.size[0] > size:
+        # Użyj LANCZOS zamiast ANTIALIAS (nowsze wersje Pillow)
+        from PIL import Image
+        img = img.resize((size, size), Image.Resampling.LANCZOS)
+    
+    # Konwertuj do bytes z optymalizacją
+    img_bytes = io.BytesIO()
+    img.save(img_bytes, format='PNG', optimize=True)
+    img_bytes.seek(0)
+    
+    return img_bytes.getvalue()
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
@@ -446,50 +506,86 @@ async def get_review_form(review_code: str):
         raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
     
     try:
-        # Przeszukaj wszystkie kolekcje w poszukiwaniu klienta z tym kodem
+        # Najpierw sprawdź w kolekcji temp_clients
+        temp_clients_ref = db.collection("temp_clients")
+        temp_docs = temp_clients_ref.where("review_code", "==", review_code).stream()
+        
         found_client = None
-        found_username = None
+        is_temp_client = False
         
-        # Pobierz wszystkie kolekcje (użytkowników)
-        collections = db.collections()
+        for doc in temp_docs:
+            found_client = doc.to_dict()
+            found_client["id"] = doc.id
+            is_temp_client = True
+            break
         
-        for collection in collections:
-            collection_name = collection.id
-            # Pomiń kolekcję "Dane" (ustawienia)
-            if collection_name == "Dane":
-                continue
+        # Jeśli nie znaleziono w temp_clients, szukaj w kolekcjach użytkowników
+        if not found_client:
+            collections = db.collections()
+            
+            for collection in collections:
+                collection_name = collection.id
+                # Pomiń kolekcje systemowe
+                if collection_name in ["Dane", "temp_clients"]:
+                    continue
+                    
+                docs = collection.where("review_code", "==", review_code).stream()
                 
-            docs = collection.where("review_code", "==", review_code).stream()
-            
-            for doc in docs:
-                found_client = doc.to_dict()
-                found_client["id"] = doc.id
-                found_username = collection_name
-                break
-            
-            if found_client:
-                break
+                for doc in docs:
+                    found_client = doc.to_dict()
+                    found_client["id"] = doc.id
+                    break
+                
+                if found_client:
+                    break
         
         if found_client:
             print(f"✅ Znaleziono klienta: {found_client['name']} {found_client['surname']}")
             
             # Zaktualizuj status na "opened" (formularz został otwarty)
-            doc_ref = db.collection(found_username).document(found_client["id"])
-            doc_ref.update({
-                "review_status": "opened",
-                "updated_at": datetime.now()
-            })
+            if is_temp_client:
+                doc_ref = db.collection("temp_clients").document(found_client["id"])
+                doc_ref.update({
+                    "status": "opened",
+                    "updated_at": datetime.now()
+                })
+            else:
+                # Znajdź kolekcję użytkownika
+                collections = db.collections()
+                for collection in collections:
+                    collection_name = collection.id
+                    if collection_name in ["Dane", "temp_clients"]:
+                        continue
+                    docs = collection.where("review_code", "==", review_code).stream()
+                    for doc in docs:
+                        doc_ref = db.collection(collection_name).document(doc.id)
+                        doc_ref.update({
+                            "review_status": "opened",
+                            "updated_at": datetime.now()
+                        })
+                        break
+                    if docs:
+                        break
             
-            # Pobierz ustawienia firmy
+            # Pobierz ustawienia firmy (dla stałych klientów)
             company_name = "Twoja Firma"  # Domyślna nazwa
-            try:
-                settings_doc = db.collection(found_username).document("Dane").get()
-                if settings_doc.exists:
-                    settings_data = settings_doc.to_dict()
-                    if "userData" in settings_data and "companyName" in settings_data["userData"]:
-                        company_name = settings_data["userData"]["companyName"]
-            except Exception as e:
-                print(f"⚠️ Nie można pobrać ustawień firmy: {e}")
+            if not is_temp_client:
+                try:
+                    collections = db.collections()
+                    for collection in collections:
+                        collection_name = collection.id
+                        if collection_name in ["Dane", "temp_clients"]:
+                            continue
+                        docs = collection.where("review_code", "==", review_code).stream()
+                        if docs:
+                            settings_doc = db.collection(collection_name).document("Dane").get()
+                            if settings_doc.exists:
+                                settings_data = settings_doc.to_dict()
+                                if "userData" in settings_data and "companyName" in settings_data["userData"]:
+                                    company_name = settings_data["userData"]["companyName"]
+                            break
+                except Exception as e:
+                    print(f"⚠️ Nie można pobrać ustawień firmy: {e}")
             
             return {
                 "review_code": review_code,
@@ -525,38 +621,70 @@ async def submit_review(review_code: str, review_data: ReviewSubmission):
         
         # Znajdź klienta po kodzie recenzji
         found_client = None
-        found_username = None
+        is_temp_client = False
         
-        collections = db.collections()
+        # Najpierw sprawdź w kolekcji temp_clients
+        temp_clients_ref = db.collection("temp_clients")
+        temp_docs = temp_clients_ref.where("review_code", "==", review_code).stream()
         
-        for collection in collections:
-            collection_name = collection.id
-            if collection_name == "Dane":
-                continue
+        for doc in temp_docs:
+            found_client = doc.to_dict()
+            found_client["id"] = doc.id
+            is_temp_client = True
+            break
+        
+        # Jeśli nie znaleziono w temp_clients, szukaj w kolekcjach użytkowników
+        if not found_client:
+            collections = db.collections()
+            
+            for collection in collections:
+                collection_name = collection.id
+                if collection_name in ["Dane", "temp_clients"]:
+                    continue
+                    
+                docs = collection.where("review_code", "==", review_code).stream()
                 
-            docs = collection.where("review_code", "==", review_code).stream()
-            
-            for doc in docs:
-                found_client = doc.to_dict()
-                found_client["id"] = doc.id
-                found_username = collection_name
-                break
-            
-            if found_client:
-                break
+                for doc in docs:
+                    found_client = doc.to_dict()
+                    found_client["id"] = doc.id
+                    break
+                
+                if found_client:
+                    break
         
         if not found_client:
             print(f"❌ Nie znaleziono klienta z kodem: {review_code}")
             raise HTTPException(status_code=404, detail="Kod recenzji nie został znaleziony")
         
         # Zaktualizuj dane klienta z nową recenzją
-        doc_ref = db.collection(found_username).document(found_client["id"])
-        doc_ref.update({
-            "stars": review_data.stars,
-            "review": review_data.review,
-            "review_status": "completed",
-            "updated_at": datetime.now()
-        })
+        if is_temp_client:
+            # Dla tymczasowych klientów
+            doc_ref = db.collection("temp_clients").document(found_client["id"])
+            doc_ref.update({
+                "stars": review_data.stars,
+                "review": review_data.review,
+                "status": "completed",
+                "updated_at": datetime.now()
+            })
+        else:
+            # Dla stałych klientów
+            collections = db.collections()
+            for collection in collections:
+                collection_name = collection.id
+                if collection_name in ["Dane", "temp_clients"]:
+                    continue
+                docs = collection.where("review_code", "==", review_code).stream()
+                for doc in docs:
+                    doc_ref = db.collection(collection_name).document(doc.id)
+                    doc_ref.update({
+                        "stars": review_data.stars,
+                        "review": review_data.review,
+                        "review_status": "completed",
+                        "updated_at": datetime.now()
+                    })
+                    break
+                if docs:
+                    break
         
         print(f"✅ Ocena zapisana: {review_data.stars} gwiazdek dla {found_client['name']} {found_client['surname']}")
         print(f"💬 Recenzja: {review_data.review}")
@@ -573,6 +701,127 @@ async def submit_review(review_code: str, review_data: ReviewSubmission):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Błąd podczas zapisywania oceny: {str(e)}")
+
+# Endpointy dla kodów QR
+@app.post("/qrcode/{username}", response_model=QRCodeResponse)
+async def generate_company_qr_code(username: str, request: QRCodeRequest):
+    """Generuj jeden kod QR dla firmy użytkownika"""
+    print(f"🔲 Generowanie kodu QR dla firmy: {username}")
+    print(f"📏 Żądany rozmiar: {request.size}px")
+    
+    if not db:
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Walidacja rozmiaru
+        if request.size < 50 or request.size > 1000:
+            raise HTTPException(status_code=400, detail="Rozmiar kodu QR musi być między 50 a 1000 pikseli")
+        
+        # Pobierz ustawienia firmy
+        company_name = "Twoja Firma"
+        try:
+            settings_doc = db.collection(username).document("Dane").get()
+            if settings_doc.exists:
+                settings_data = settings_doc.to_dict()
+                if "userData" in settings_data and "companyName" in settings_data["userData"]:
+                    company_name = settings_data["userData"]["companyName"]
+        except Exception as e:
+            print(f"⚠️ Nie można pobrać nazwy firmy: {e}")
+        
+        # Generuj URL do formularza logowania klienta
+        # Sprawdź czy frontend działa na porcie 3002 (z terminala widzę, że tak)
+        client_login_url = f"http://localhost:3002/client-login"
+        
+        # Generuj kod QR z lepszą konfiguracją
+        qr_data = generate_qr_code(client_login_url, request.size)
+        qr_base64 = f"data:image/png;base64,{base64.b64encode(qr_data).decode()}"
+        
+        print(f"✅ Wygenerowano kod QR dla firmy: {company_name} (rozmiar: {request.size}px)")
+        return QRCodeResponse(
+            qr_code=qr_base64,
+            company_name=company_name,
+            review_url=client_login_url
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Błąd podczas generowania kodu QR: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Błąd podczas generowania kodu QR: {str(e)}")
+
+@app.get("/qrcode/{review_code}")
+async def get_qr_code_image(review_code: str, size: int = 200):
+    """Pobierz kod QR jako obraz dla konkretnego kodu recenzji"""
+    print(f"🔲 Generowanie kodu QR dla: {review_code}")
+    print(f"📏 Żądany rozmiar: {size}px")
+    
+    try:
+        # Walidacja rozmiaru
+        if size < 50 or size > 1000:
+            raise HTTPException(status_code=400, detail="Rozmiar kodu QR musi być między 50 a 1000 pikseli")
+        
+        # Generuj URL do formularza recenzji
+        review_url = f"http://localhost:3002/review/{review_code}"
+        
+        # Generuj kod QR z lepszą konfiguracją
+        qr_data = generate_qr_code(review_url, size)
+        
+        return StreamingResponse(
+            io.BytesIO(qr_data),
+            media_type="image/png",
+            headers={
+                "Content-Disposition": f"inline; filename=qr_{review_code}.png",
+                "Cache-Control": "public, max-age=3600"  # Cache na 1 godzinę
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Błąd podczas generowania kodu QR: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd podczas generowania kodu QR: {str(e)}")
+
+# Endpoint do logowania klienta
+@app.post("/client-login", response_model=ClientLoginResponse)
+async def client_login(client_data: ClientLoginRequest):
+    """Zapisz dane klienta i wygeneruj kod recenzji"""
+    print(f"👤 Logowanie klienta: {client_data.name} {client_data.surname}")
+    
+    if not db:
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Generuj unikalny kod recenzji
+        review_code = generate_review_code()
+        
+        # Zapisz dane klienta w kolekcji "temp_clients" (tymczasowi klienci)
+        temp_client_data = {
+            "name": client_data.name,
+            "surname": client_data.surname,
+            "phone": client_data.phone,
+            "review_code": review_code,
+            "created_at": datetime.now(),
+            "status": "pending_review"
+        }
+        
+        # Dodaj do kolekcji temp_clients
+        temp_clients_ref = db.collection("temp_clients")
+        doc_ref = temp_clients_ref.add(temp_client_data)[1]
+        
+        print(f"✅ Klient zapisany z kodem: {review_code}")
+        
+        return ClientLoginResponse(
+            review_code=review_code,
+            message="Dane zostały zapisane pomyślnie"
+        )
+        
+    except Exception as e:
+        print(f"❌ Błąd podczas zapisywania danych klienta: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Błąd podczas zapisywania danych: {str(e)}")
 
 # Uruchomienie serwera
 if __name__ == "__main__":
