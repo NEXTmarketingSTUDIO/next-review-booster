@@ -1,0 +1,6 @@
+# Minimalne requirements - tylko 5 pakietów
+fastapi
+uvicorn
+firebase_admin
+pydantic
+python-multipart
