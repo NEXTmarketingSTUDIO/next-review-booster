@@ -9,6 +9,8 @@ import RegisterPage from './pages/RegisterPage';
 import ClientsPage from './pages/ClientsPage';
 import SettingsPage from './pages/SettingsPage';
 import ReviewFormPage from './pages/ReviewFormPage';
+import QRCodePage from './pages/QRCodePage';
+import ClientLoginPage from './pages/ClientLoginPage';
 import './App.css';
 
 function App() {
@@ -60,6 +62,7 @@ function App() {
               <div className="nav-links">
                 <Link to="/">Strona główna</Link>
                 <Link to="/clients">Klienci</Link>
+                <Link to="/qrcodes">Kody QR</Link>
               </div>
               
               <div className="nav-right">
@@ -197,6 +200,13 @@ function App() {
             </ProtectedRoute>
           } />
           
+          <Route path="/qrcodes" element={
+            <ProtectedRoute>
+              <QRCodePage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/client-login" element={<ClientLoginPage />} />
           <Route path="/review/:reviewCode" element={<ReviewFormPage />} />
         </Routes>
       </div>
