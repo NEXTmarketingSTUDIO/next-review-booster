@@ -1,0 +1,272 @@
+.review-form-page {
+  min-height: 100vh;
+  background: white;
+  padding: 2rem 0;
+}
+
+.review-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  color: black;
+}
+
+.review-header h1 {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.review-header p {
+  font-size: 1.2rem;
+  margin-bottom: 0;
+  opacity: 0.9;
+}
+
+/* Formularz */
+.review-form-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.review-form {
+  background: white;
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+}
+
+.form-section {
+  margin-bottom: 2.5rem;
+}
+
+.form-section h3 {
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.form-section p {
+  color: #666;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+/* Gwiazdki */
+.stars-container {
+  text-align: center;
+  margin: 2rem 0;
+}
+
+.stars-input {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 3rem;
+  color: #ddd;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.star-btn:hover {
+  transform: scale(1.1);
+}
+
+.star-btn.active {
+  color: #FFD700;
+  text-shadow: 0 2px 4px rgba(255, 215, 0, 0.5);
+}
+
+.stars-label {
+  font-size: 1.1rem;
+  color: #666;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Textarea */
+.review-form textarea {
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 15px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 120px;
+  transition: border-color 0.3s ease;
+  box-sizing: border-box;
+}
+
+.review-form textarea:focus {
+  outline: none;
+  border-color: #FFA500;
+}
+
+.char-counter {
+  text-align: right;
+  font-size: 0.9rem;
+  color: #999;
+  margin-top: 0.5rem;
+}
+
+/* Przyciski */
+.form-actions {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid #f0f0f0;
+}
+
+.btn {
+  padding: 1rem 2rem;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  min-width: 200px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 165, 0, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 165, 0, 0.4);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Stany loading, error, success */
+.loading, .error-state, .success-state {
+  text-align: center;
+  color: white;
+  padding: 4rem 2rem;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-icon, .success-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.error-state h2, .success-state h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  color: black;
+}
+
+.error-state p, .success-state p {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  opacity: 0.9;
+  color: black
+}
+
+/* Komunikat błędu */
+.error-message {
+  background: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-radius: 10px;
+  padding: 1rem;
+  margin: 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #c62828;
+}
+
+.error-icon {
+  font-size: 1.2rem;
+}
+
+/* Responsywność */
+@media (max-width: 768px) {
+  .review-header h1 {
+    font-size: 2.5rem;
+  }
+  
+  .review-form {
+    padding: 2rem 1.5rem;
+    margin: 0 0.5rem;
+  }
+  
+  .star-btn {
+    font-size: 2.5rem;
+  }
+  
+  .stars-input {
+    gap: 0.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .review-form-page {
+    padding: 1rem 0;
+  }
+  
+  .review-header {
+    margin-bottom: 2rem;
+  }
+  
+  .review-header h1 {
+    font-size: 2rem;
+  }
+  
+  .review-form {
+    padding: 1.5rem 1rem;
+    border-radius: 15px;
+  }
+  
+  .form-section {
+    margin-bottom: 2rem;
+  }
+  
+  .star-btn {
+    font-size: 2rem;
+  }
+  
+  .review-form textarea {
+    padding: 0.8rem;
+    font-size: 0.95rem;
+  }
+  
+  .btn {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    min-width: 150px;
+  }
+}

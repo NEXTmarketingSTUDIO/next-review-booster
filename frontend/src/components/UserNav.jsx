@@ -85,17 +85,9 @@ const UserNav = () => {
           </div>
 
           <div className="dropdown-actions">
-            <button className="dropdown-item">
-              <span className="icon">👤</span>
-              Mój profil
-            </button>
-            <button className="dropdown-item">
+            <button className="dropdown-item" onClick={() => window.location.href = '/settings'}>
               <span className="icon">⚙️</span>
               Ustawienia
-            </button>
-            <button className="dropdown-item">
-              <span className="icon">📧</span>
-              Weryfikuj email
             </button>
             <div className="dropdown-divider"></div>
             <button 

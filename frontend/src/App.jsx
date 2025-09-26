@@ -6,7 +6,9 @@ import ProtectedRoute from './components/ProtectedRoute';
 import UserNav from './components/UserNav';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import Dashboard from './pages/Dashboard';
+import ClientsPage from './pages/ClientsPage';
+import SettingsPage from './pages/SettingsPage';
+import ReviewFormPage from './pages/ReviewFormPage';
 import './App.css';
 
 function App() {
@@ -51,13 +53,13 @@ function App() {
           <div className="container">
             <div className="nav-content">
               <Link to="/" className="logo">
-                <span className="logo-next">Next</span>
-                <span className="logo-reviews">Reviews</span>
+                <span className="logo-next">next</span>
+                <span className="logo-reviews">review booster</span>
               </Link>
               
               <div className="nav-links">
                 <Link to="/">Strona główna</Link>
-                <Link to="/dashboard">Dashboard</Link>
+                <Link to="/clients">Klienci</Link>
               </div>
               
               <div className="nav-right">
@@ -183,11 +185,19 @@ function App() {
           
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/dashboard" element={
+          <Route path="/clients" element={
             <ProtectedRoute>
-              <Dashboard />
+              <ClientsPage />
             </ProtectedRoute>
           } />
+          
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <SettingsPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/review/:reviewCode" element={<ReviewFormPage />} />
         </Routes>
       </div>
     </Router>

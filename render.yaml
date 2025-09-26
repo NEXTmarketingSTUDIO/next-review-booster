@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: next-reviews-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && python backend_main.py
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: FIREBASE_PROJECT_ID
+        value: next-reviews-9d19c
+      - key: FIREBASE_PRIVATE_KEY_ID
+        fromService:
+          type: secret
+          name: firebase-private-key-id
+      - key: FIREBASE_PRIVATE_KEY
+        fromService:
+          type: secret
+          name: firebase-private-key
+      - key: FIREBASE_CLIENT_EMAIL
+        fromService:
+          type: secret
+          name: firebase-client-email
+      - key: FIREBASE_CLIENT_ID
+        fromService:
+          type: secret
+          name: firebase-client-id
+      - key: FIREBASE_AUTH_URI
+        value: https://accounts.google.com/o/oauth2/auth
+      - key: FIREBASE_TOKEN_URI
+        value: https://oauth2.googleapis.com/token
+      - key: FIREBASE_AUTH_PROVIDER_X509_CERT_URL
+        value: https://www.googleapis.com/oauth2/v1/certs
+      - key: FIREBASE_CLIENT_X509_CERT_URL
+        fromService:
+          type: secret
+          name: firebase-client-x509-cert-url
+    healthCheckPath: /health
+    autoDeploy: true
+    branch: master
