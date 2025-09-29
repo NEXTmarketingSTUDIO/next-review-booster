@@ -68,7 +68,6 @@ function AppContent() {
               <div className="nav-links">
                 <Link to="/">Strona główna</Link>
                 <Link to="/clients">Klienci</Link>
-                <Link to="/qrcodes">Kody QR</Link>
               </div>
               
               <div className="nav-right">
