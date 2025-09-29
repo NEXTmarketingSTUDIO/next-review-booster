@@ -8,7 +8,9 @@ const baseURL = import.meta.env.VITE_API_URL || (import.meta.env.PROD
 console.log('🔧 API Config:', {
   VITE_API_URL: import.meta.env.VITE_API_URL,
   PROD: import.meta.env.PROD,
-  baseURL: baseURL
+  baseURL: baseURL,
+  NODE_ENV: import.meta.env.MODE,
+  MODE: import.meta.env.MODE
 });
 
 const api = axios.create({
@@ -18,6 +20,38 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Dodaj interceptor aby debugować requesty
+api.interceptors.request.use(
+  (config) => {
+    console.log('🚀 API Request:', {
+      method: config.method,
+      url: config.url,
+      baseURL: config.baseURL,
+      fullURL: `${config.baseURL}${config.url}`
+    });
+    return config;
+  },
+  (error) => {
+    console.error('❌ API Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+api.interceptors.response.use(
+  (response) => {
+    console.log('✅ API Response:', {
+      status: response.status,
+      url: response.config.url,
+      data: response.data
+    });
+    return response;
+  },
+  (error) => {
+    console.error('❌ API Response Error:', error);
+    return Promise.reject(error);
+  }
+);
 
 // Interceptor dla requestów - dodaje token autoryzacji jeśli istnieje
 api.interceptors.request.use(

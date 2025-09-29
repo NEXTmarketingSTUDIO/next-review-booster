@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import apiService from '../services/api';
 import './ReviewFormPage.css';
 
 const ReviewFormPage = () => {
@@ -28,7 +29,7 @@ const ReviewFormPage = () => {
       setLoading(true);
       console.log('🔍 Pobieranie informacji dla kodu:', reviewCode);
       
-      const response = await axios.get(`/api/review/${reviewCode}`);
+      const response = await apiService.get(`/review/${reviewCode}`);
       console.log('✅ Informacje o kliencie:', response.data);
       console.log('🔗 Google Card URL:', response.data.google_card);
       
@@ -75,7 +76,7 @@ const ReviewFormPage = () => {
       
       console.log('📤 Wysyłanie oceny:', formData);
       
-      const response = await axios.post(`/api/review/${reviewCode}`, formData);
+      const response = await apiService.post(`/review/${reviewCode}`, formData);
       console.log('✅ Odpowiedź:', response.data);
       
       // Jeśli to 5 gwiazdek, przekieruj na Google

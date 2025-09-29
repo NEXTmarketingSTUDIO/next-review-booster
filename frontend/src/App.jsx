@@ -61,8 +61,7 @@ function AppContent() {
           <div className="container">
             <div className="nav-content">
               <Link to="/" className="logo">
-                <span className="logo-next">next</span>
-                <span className="logo-reviews">review booster</span>
+                <img src="./images/NEXT_reviews_BOOSTER_LOGO.jpg" alt="Logo" className="logo-image" />
               </Link>
               
               <div className="nav-links">
@@ -106,8 +105,7 @@ function AppContent() {
           <div className="hero-content fade-in-up">
             <div className="logo-section">
               <h1 className="app-title">
-                <span className="title-main">Next</span>
-                <span className="title-accent">Reviews</span>
+                <img src="./images/NEXT_reviews_BOOSTER_LOGO.jpg" alt="Logo" className="logo-image" />
               </h1>
               <p className="app-subtitle">
                 Nowoczesna aplikacja do zarządzania recenzjami
