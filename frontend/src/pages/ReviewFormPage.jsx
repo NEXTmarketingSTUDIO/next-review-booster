@@ -30,6 +30,7 @@ const ReviewFormPage = () => {
       
       const response = await axios.get(`/api/review/${reviewCode}`);
       console.log('✅ Informacje o kliencie:', response.data);
+      console.log('🔗 Google Card URL:', response.data.google_card);
       
       setClientInfo(response.data);
     } catch (error) {
@@ -79,7 +80,10 @@ const ReviewFormPage = () => {
       
       // Jeśli to 5 gwiazdek, przekieruj na Google
       if (formData.stars === 5 && clientInfo?.google_card) {
+        console.log('🔗 Przekierowanie na Google Card:', clientInfo.google_card);
         window.open(clientInfo.google_card, '_blank');
+      } else if (formData.stars === 5) {
+        console.log('⚠️ Brak Google Card URL w ustawieniach');
       }
       
       setSuccess(true);
