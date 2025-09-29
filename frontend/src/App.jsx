@@ -212,7 +212,7 @@ function AppContent() {
             </ProtectedRoute>
           } />
           
-          <Route path="/client-login" element={<ClientLoginPage />} />
+          <Route path="/client-login/:username" element={<ClientLoginPage />} />
           <Route path="/review/:reviewCode" element={<ReviewFormPage />} />
       </Routes>
     </div>
