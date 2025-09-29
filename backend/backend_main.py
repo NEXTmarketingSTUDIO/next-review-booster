@@ -595,12 +595,25 @@ async def get_review_form(review_code: str):
                             if "userData" in settings_data:
                                 user_data = settings_data["userData"]
                                 print(f"👤 Dane użytkownika: {user_data}")
-                                if "companyName" in user_data:
-                                    company_name = user_data["companyName"]
-                                    print(f"🏢 Nazwa firmy: {company_name}")
-                                if "googleCard" in user_data:
-                                    google_card = user_data["googleCard"]
-                                    print(f"🔗 Google Card: {google_card}")
+                                
+                                # Sprawdź czy userData ma zagnieżdżoną strukturę userData
+                                if "userData" in user_data:
+                                    nested_user_data = user_data["userData"]
+                                    print(f"👤 Zagnieżdżone dane użytkownika: {nested_user_data}")
+                                    if "companyName" in nested_user_data:
+                                        company_name = nested_user_data["companyName"]
+                                        print(f"🏢 Nazwa firmy: {company_name}")
+                                    if "googleCard" in nested_user_data:
+                                        google_card = nested_user_data["googleCard"]
+                                        print(f"🔗 Google Card: {google_card}")
+                                else:
+                                    # Sprawdź bezpośrednio w userData
+                                    if "companyName" in user_data:
+                                        company_name = user_data["companyName"]
+                                        print(f"🏢 Nazwa firmy: {company_name}")
+                                    if "googleCard" in user_data:
+                                        google_card = user_data["googleCard"]
+                                        print(f"🔗 Google Card: {google_card}")
                             else:
                                 print("⚠️ Brak userData w ustawieniach")
                         else:
