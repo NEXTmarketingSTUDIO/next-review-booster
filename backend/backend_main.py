@@ -574,41 +574,40 @@ async def get_review_form(review_code: str):
                     if docs:
                         break
             
-            # Pobierz ustawienia firmy (dla stałych klientów)
+            # Pobierz ustawienia firmy (dla wszystkich klientów)
             company_name = "Twoja Firma"
-            google_card = "" 
-            if not is_temp_client:
-                try:
-                    print(f"🔍 Szukanie ustawień dla kodu: {review_code}")
-                    collections = db.collections()
-                    for collection in collections:
-                        collection_name = collection.id
-                        print(f"🔍 Sprawdzanie kolekcji: {collection_name}")
-                        if collection_name in ["Dane", "temp_clients"]:
-                            continue
-                        docs = collection.where("review_code", "==", review_code).stream()
-                        if docs:
-                            print(f"✅ Znaleziono klienta w kolekcji: {collection_name}")
-                            settings_doc = db.collection(collection_name).document("Dane").get()
-                            if settings_doc.exists:
-                                settings_data = settings_doc.to_dict()
-                                print(f"📋 Dane ustawień: {settings_data}")
-                                if "userData" in settings_data:
-                                    user_data = settings_data["userData"]
-                                    print(f"👤 Dane użytkownika: {user_data}")
-                                    if "companyName" in user_data:
-                                        company_name = user_data["companyName"]
-                                        print(f"🏢 Nazwa firmy: {company_name}")
-                                    if "googleCard" in user_data:
-                                        google_card = user_data["googleCard"]
-                                        print(f"🔗 Google Card: {google_card}")
-                                else:
-                                    print("⚠️ Brak userData w ustawieniach")
+            google_card = ""
+            try:
+                print(f"🔍 Szukanie ustawień dla kodu: {review_code}")
+                collections = db.collections()
+                for collection in collections:
+                    collection_name = collection.id
+                    print(f"🔍 Sprawdzanie kolekcji: {collection_name}")
+                    if collection_name in ["Dane", "temp_clients"]:
+                        continue
+                    docs = collection.where("review_code", "==", review_code).stream()
+                    if docs:
+                        print(f"✅ Znaleziono klienta w kolekcji: {collection_name}")
+                        settings_doc = db.collection(collection_name).document("Dane").get()
+                        if settings_doc.exists:
+                            settings_data = settings_doc.to_dict()
+                            print(f"📋 Dane ustawień: {settings_data}")
+                            if "userData" in settings_data:
+                                user_data = settings_data["userData"]
+                                print(f"👤 Dane użytkownika: {user_data}")
+                                if "companyName" in user_data:
+                                    company_name = user_data["companyName"]
+                                    print(f"🏢 Nazwa firmy: {company_name}")
+                                if "googleCard" in user_data:
+                                    google_card = user_data["googleCard"]
+                                    print(f"🔗 Google Card: {google_card}")
                             else:
-                                print(f"⚠️ Dokument 'Dane' nie istnieje w kolekcji {collection_name}")
-                            break
-                except Exception as e:
-                    print(f"⚠️ Nie można pobrać ustawień firmy: {e}")
+                                print("⚠️ Brak userData w ustawieniach")
+                        else:
+                            print(f"⚠️ Dokument 'Dane' nie istnieje w kolekcji {collection_name}")
+                        break
+            except Exception as e:
+                print(f"⚠️ Nie można pobrać ustawień firmy: {e}")
             
             return {
                 "review_code": review_code,
