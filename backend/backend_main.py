@@ -168,6 +168,18 @@ class ClientLoginResponse(BaseModel):
     review_code: str
     message: str
 
+# Modele dla testowego SMS
+class TestSMSRequest(BaseModel):
+    phone_number: str
+    username: str
+    message_content: Optional[str] = None  # Opcjonalna treść wiadomości z frontendu
+
+class TestSMSResponse(BaseModel):
+    success: bool
+    message: str
+    message_id: Optional[str] = None
+    message_content: Optional[str] = None
+
 # Funkcja do generowania unikalnego kodu recenzji
 def generate_review_code():
     """Generuje unikalny kod recenzji (10 znaków alfanumerycznych)"""
@@ -724,8 +736,7 @@ async def generate_company_qr_code(username: str, request: QRCodeRequest):
             print(f"⚠️ Nie można pobrać nazwy firmy: {e}")
         
         # Generuj URL do formularza logowania klienta
-        # Użyj zmiennej środowiskowej lub domyślnego localhost
-        base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+        base_url = os.getenv("FRONTEND_URL", "https://next-reviews-9d19c.web.app")
         client_login_url = f"{base_url}/client-login/{username}"
         
         # Generuj kod QR z lepszą konfiguracją
@@ -813,7 +824,7 @@ async def get_qr_code_image(review_code: str, size: int = 200):
         
         # Generuj URL do formularza recenzji
         # Użyj zmiennej środowiskowej lub domyślnego localhost
-        base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+        base_url = os.getenv("FRONTEND_URL", "https://next-reviews-9d19c.web.app")
         review_url = f"{base_url}/review/{review_code}"
         
         # Generuj kod QR z lepszą konfiguracją
