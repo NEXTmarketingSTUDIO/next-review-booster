@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { apiService } from '../services/api';
 import './ClientLoginPage.css';
 
 const ClientLoginPage = () => {
   const navigate = useNavigate();
+  const { username } = useParams();
   const [formData, setFormData] = useState({
     name: '',
-    surname: '',
-    email: '',
     phone: ''
   });
   const [loading, setLoading] = useState(false);
@@ -24,7 +24,7 @@ const ClientLoginPage = () => {
     e.preventDefault();
     
     // Walidacja
-    if (!formData.name.trim() || !formData.surname.trim() || !formData.email.trim() || !formData.phone.trim()) {
+    if (!formData.name.trim() || !formData.phone.trim()) {
       setError('Proszę wypełnić wszystkie pola');
       return;
     }
@@ -39,19 +39,12 @@ const ClientLoginPage = () => {
       setError('');
 
       // Zapisz dane klienta i pobierz kod recenzji
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/client-login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (!response.ok) {
-        throw new Error('Błąd podczas zapisywania danych');
+      if (!username) {
+        setError('Brak informacji o użytkowniku');
+        return;
       }
-
-      const data = await response.json();
+      
+      const data = await apiService.clientLogin(username, formData);
       
       // Przekieruj do formularza recenzji
       navigate(`/review/${data.review_code}`);
@@ -87,31 +80,6 @@ const ClientLoginPage = () => {
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="surname">Nazwisko *</label>
-              <input
-                type="text"
-                id="surname"
-                name="surname"
-                value={formData.surname}
-                onChange={handleInputChange}
-                placeholder="Wprowadź swoje nazwisko"
-                required
-              />
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="surname">Email *</label>
-              <input
-                type="text"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="Wprowadź swój adres email"
-                required
-              />
-            </div>
 
             <div className="form-group">
               <label htmlFor="phone">Numer telefonu *</label>

@@ -187,6 +187,19 @@ export const apiService = {
       console.error('❌ API: Błąd pobierania obrazu kodu QR:', error);
       throw error;
     }
+  },
+
+  // Endpoint dla logowania klienta
+  async clientLogin(username, clientData) {
+    console.log('👤 API: Logowanie klienta:', username);
+    try {
+      const response = await api.post(`/client-login/${username}`, clientData);
+      console.log('✅ API: Klient zalogowany:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ API: Błąd logowania klienta:', error);
+      throw error;
+    }
   }
 };
 
