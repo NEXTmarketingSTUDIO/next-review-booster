@@ -12,8 +12,6 @@ const ClientsPage = () => {
   const [expandedReviews, setExpandedReviews] = useState(new Set());
   const [formData, setFormData] = useState({
     name: '',
-    surname: '',
-    email: '',
     phone: '',
     note: ''
   });
@@ -70,8 +68,6 @@ const ClientsPage = () => {
       // Resetuj formularz
       setFormData({
         name: '',
-        surname: '',
-        email: '',
         phone: '',
         note: ''
       });
@@ -87,8 +83,6 @@ const ClientsPage = () => {
     setEditingClient(client);
     setFormData({
       name: client.name || '',
-      surname: client.surname || '',
-      email: client.email || '',
       phone: client.phone || '',
       note: client.note || ''
     });
@@ -166,8 +160,6 @@ const ClientsPage = () => {
                     setEditingClient(null);
                     setFormData({
                       name: '',
-                      surname: '',
-                      email: '',
                       phone: '',
                       note: ''
                     });
@@ -187,29 +179,6 @@ const ClientsPage = () => {
                     value={formData.name}
                     onChange={handleInputChange}
                     required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="surname">Nazwisko *</label>
-                  <input
-                    type="text"
-                    id="surname"
-                    name="surname"
-                    value={formData.surname}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="email">Email</label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
                   />
                 </div>
 
@@ -268,8 +237,7 @@ const ClientsPage = () => {
               <table className="clients-table">
                 <thead>
                   <tr>
-                    <th>Imię i nazwisko</th>
-                    <th>Email</th>
+                    <th>Imię</th>
                     <th>Telefon</th>
                     <th>Notatka</th>
                     <th>Ocena</th>
@@ -282,10 +250,7 @@ const ClientsPage = () => {
                   {clients.map((client) => (
                     <tr key={client.id} className="client-row">
                       <td className="client-name">
-                        <strong>{client.name} {client.surname}</strong>
-                      </td>
-                      <td className="client-email">
-                        {client.email || '-'}
+                        <strong>{client.name}</strong>
                       </td>
                       <td className="client-phone">
                         {client.phone || '-'}
