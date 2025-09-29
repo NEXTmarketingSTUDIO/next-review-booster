@@ -576,6 +576,7 @@ async def get_review_form(review_code: str):
             
             # Pobierz ustawienia firmy (dla stałych klientów)
             company_name = "Twoja Firma"  # Domyślna nazwa
+            google_card = ""  # Domyślny link
             if not is_temp_client:
                 try:
                     collections = db.collections()
@@ -588,8 +589,11 @@ async def get_review_form(review_code: str):
                             settings_doc = db.collection(collection_name).document("Dane").get()
                             if settings_doc.exists:
                                 settings_data = settings_doc.to_dict()
-                                if "userData" in settings_data and "companyName" in settings_data["userData"]:
-                                    company_name = settings_data["userData"]["companyName"]
+                                if "userData" in settings_data:
+                                    if "companyName" in settings_data["userData"]:
+                                        company_name = settings_data["userData"]["companyName"]
+                                    if "googleCard" in settings_data["userData"]:
+                                        google_card = settings_data["userData"]["googleCard"]
                             break
                 except Exception as e:
                     print(f"⚠️ Nie można pobrać ustawień firmy: {e}")
@@ -597,7 +601,8 @@ async def get_review_form(review_code: str):
             return {
                 "review_code": review_code,
                 "client_name": found_client['name'],
-                "company_name": company_name
+                "company_name": company_name,
+                "google_card": google_card
             }
         else:
             print(f"❌ Nie znaleziono klienta z kodem: {review_code}")
