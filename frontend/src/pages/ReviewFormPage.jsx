@@ -144,12 +144,6 @@ const ReviewFormPage = () => {
             <h2>Dziękujemy!</h2>
             <p>Twoja opinia została pomyślnie zapisana.</p>
             <p>Bardzo cenimy sobie Twoje uwagi!</p>
-            <button 
-              className="btn btn-primary"
-              onClick={() => navigate('/')}
-            >
-              Zamknij
-            </button>
           </div>
         </div>
       </div>
