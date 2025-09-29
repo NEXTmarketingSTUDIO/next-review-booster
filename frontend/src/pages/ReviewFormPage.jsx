@@ -79,11 +79,17 @@ const ReviewFormPage = () => {
       console.log('✅ Odpowiedź:', response.data);
       
       // Jeśli to 5 gwiazdek, przekieruj na Google
+      console.log('🔍 Debug - clientInfo:', clientInfo);
+      console.log('🔍 Debug - google_card:', clientInfo?.google_card);
+      console.log('🔍 Debug - formData.stars:', formData.stars);
+      
       if (formData.stars === 5 && clientInfo?.google_card) {
         console.log('🔗 Przekierowanie na Google Card:', clientInfo.google_card);
         window.open(clientInfo.google_card, '_blank');
       } else if (formData.stars === 5) {
         console.log('⚠️ Brak Google Card URL w ustawieniach');
+        console.log('🔍 clientInfo:', clientInfo);
+        console.log('🔍 google_card value:', clientInfo?.google_card);
       }
       
       setSuccess(true);
