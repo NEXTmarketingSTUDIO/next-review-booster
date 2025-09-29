@@ -30,6 +30,9 @@ export default defineConfig({
   },
   define: {
     // Definiuj zmienne środowiskowe dla build
-    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+    // Wymuś URL API dla produkcji
+    'import.meta.env.VITE_API_URL': JSON.stringify('https://next-review-booster.onrender.com'),
+    'import.meta.env.PROD': JSON.stringify(true)
   }
 })

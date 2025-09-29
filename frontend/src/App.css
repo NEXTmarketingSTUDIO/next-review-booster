@@ -44,6 +44,12 @@
   gap: 0.5rem;
 }
 
+.logo-image {
+  height: 100px; 
+  width: auto;
+  object-fit: contain;
+}
+
 .nav-links {
   display: flex;
   gap: 2rem;
@@ -138,6 +144,12 @@
   font-weight: 800;
   margin-bottom: 1rem;
   line-height: 1.1;
+}
+
+.app-title .logo-image {
+  height: clamp(120px, 15vw, 200px); /* Większy rozmiar na stronie głównej */
+  width: auto;
+  object-fit: contain;
 }
 
 .logo-next {
@@ -331,6 +343,14 @@
   
   .logo-section {
     margin-bottom: 3rem;
+  }
+  
+  .logo-image {
+    height: 40px; /* Mniejszy rozmiar na mobile w nawigacji */
+  }
+  
+  .app-title .logo-image {
+    height: clamp(80px, 20vw, 120px); /* Mniejszy rozmiar na mobile na stronie głównej */
   }
   
   .status-section {
