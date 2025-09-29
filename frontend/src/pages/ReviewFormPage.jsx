@@ -15,6 +15,7 @@ const ReviewFormPage = () => {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [showThanks, setShowThanks] = useState(false);
 
   useEffect(() => {
     if (reviewCode) {
@@ -44,6 +45,13 @@ const ReviewFormPage = () => {
       ...prev,
       stars: rating
     }));
+    
+    // Jeśli wybrano 5 gwiazdek, pokaż podziękowania
+    if (rating === 5) {
+      setShowThanks(true);
+    } else {
+      setShowThanks(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -54,7 +62,8 @@ const ReviewFormPage = () => {
       return;
     }
 
-    if (formData.review.trim().length < 10) {
+    // Dla 5 gwiazdek nie wymagamy recenzji
+    if (formData.stars !== 5 && formData.review.trim().length < 10) {
       setError('Recenzja musi mieć co najmniej 10 znaków');
       return;
     }
@@ -67,6 +76,11 @@ const ReviewFormPage = () => {
       
       const response = await axios.post(`/api/review/${reviewCode}`, formData);
       console.log('✅ Odpowiedź:', response.data);
+      
+      // Jeśli to 5 gwiazdek, przekieruj na Google
+      if (formData.stars === 5 && clientInfo?.google_card) {
+        window.open(clientInfo.google_card, '_blank');
+      }
       
       setSuccess(true);
     } catch (error) {
@@ -175,26 +189,37 @@ const ReviewFormPage = () => {
               </div>
             </div>
 
-            <div className="form-section">
-              <label htmlFor="review">
-                <h3>Napisz swoją opinię</h3>
-                <p>Opisz swoje doświadczenia z naszymi usługami (minimum 10 znaków)</p>
-              </label>
-              
-              <textarea
-                id="review"
-                name="review"
-                value={formData.review}
-                onChange={handleInputChange}
-                rows="6"
-                placeholder="Napisz swoją opinię o naszych usługach..."
-                required
-              />
-              
-              <div className="char-counter">
-                {formData.review.length}/500 znaków
+            {showThanks ? (
+              <div className="form-section thanks-section">
+                <div className="thanks-content">
+                  <div className="thanks-icon">🎉</div>
+                  <h3>Dziękujemy za 5 gwiazdek!</h3>
+                  <p>Bardzo cieszymy się, że nasze usługi spełniły Twoje oczekiwania!</p>
+                  <p>Po wysłaniu opinii zostaniesz przekierowany na naszą wizytówkę Google, gdzie możesz zostawić oficjalną recenzję.</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="form-section">
+                <label htmlFor="review">
+                  <h3>Napisz swoją opinię</h3>
+                  <p>Opisz swoje doświadczenia z naszymi usługami (minimum 10 znaków)</p>
+                </label>
+                
+                <textarea
+                  id="review"
+                  name="review"
+                  value={formData.review}
+                  onChange={handleInputChange}
+                  rows="6"
+                  placeholder="Napisz swoją opinię o naszych usługach..."
+                  required
+                />
+                
+                <div className="char-counter">
+                  {formData.review.length}/500 znaków
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="error-message">
@@ -209,7 +234,7 @@ const ReviewFormPage = () => {
                 className="btn btn-primary"
                 disabled={submitting || formData.stars === 0}
               >
-                {submitting ? 'Zapisywanie...' : 'Wyślij opinię'}
+                {submitting ? 'Zapisywanie...' : showThanks ? 'Wyślij opinię i przejdź do Google' : 'Wyślij opinię'}
               </button>
             </div>
           </form>
