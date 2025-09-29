@@ -87,9 +87,7 @@ class HealthResponse(BaseModel):
 # Modele danych dla klientów
 class ClientCreate(BaseModel):
     name: str
-    surname: str
     phone: str
-    email: str
     note: str = ""
     stars: int = 0  # Domyślnie 0 - będzie ustawiane przez klienta
     review: str = ""  # Domyślnie puste - będzie wypełniane przez klienta
@@ -98,9 +96,7 @@ class ClientCreate(BaseModel):
 
 class ClientUpdate(BaseModel):
     name: Optional[str] = None
-    surname: Optional[str] = None
     phone: Optional[str] = None
-    email: Optional[str] = None
     note: Optional[str] = None
     stars: Optional[int] = None
     review: Optional[str] = None
@@ -110,9 +106,7 @@ class ClientUpdate(BaseModel):
 class ClientResponse(BaseModel):
     id: str
     name: str
-    surname: str
     phone: str
-    email: str
     note: str = ""
     stars: int = 0
     review: str = ""
@@ -166,8 +160,9 @@ class QRCodeResponse(BaseModel):
 # Modele dla logowania klienta
 class ClientLoginRequest(BaseModel):
     name: str
-    surname: str
     phone: str
+    note: str = ""
+    stars: int = 0
 
 class ClientLoginResponse(BaseModel):
     review_code: str
@@ -540,7 +535,7 @@ async def get_review_form(review_code: str):
                     break
         
         if found_client:
-            print(f"✅ Znaleziono klienta: {found_client['name']} {found_client['surname']}")
+            print(f"✅ Znaleziono klienta: {found_client['name']}")
             
             # Zaktualizuj status na "opened" (formularz został otwarty)
             if is_temp_client:
@@ -589,7 +584,7 @@ async def get_review_form(review_code: str):
             
             return {
                 "review_code": review_code,
-                "client_name": f"{found_client['name']} {found_client['surname']}",
+                "client_name": found_client['name'],
                 "company_name": company_name
             }
         else:
@@ -686,7 +681,7 @@ async def submit_review(review_code: str, review_data: ReviewSubmission):
                 if docs:
                     break
         
-        print(f"✅ Ocena zapisana: {review_data.stars} gwiazdek dla {found_client['name']} {found_client['surname']}")
+        print(f"✅ Ocena zapisana: {review_data.stars} gwiazdek dla {found_client['name']}")
         print(f"💬 Recenzja: {review_data.review}")
         
         return ReviewResponse(
@@ -731,7 +726,7 @@ async def generate_company_qr_code(username: str, request: QRCodeRequest):
         # Generuj URL do formularza logowania klienta
         # Użyj zmiennej środowiskowej lub domyślnego localhost
         base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-        client_login_url = f"{base_url}/client-login"
+        client_login_url = f"{base_url}/client-login/{username}"
         
         # Generuj kod QR z lepszą konfiguracją
         qr_data = generate_qr_code(client_login_url, request.size)
@@ -751,6 +746,59 @@ async def generate_company_qr_code(username: str, request: QRCodeRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Błąd podczas generowania kodu QR: {str(e)}")
+
+# Endpoint do wysyłania SMS
+@app.post("/send-sms", response_model=TestSMSResponse)
+async def send_sms(sms_request: TestSMSRequest):
+    """Endpoint do wysyłania SMS przez Twilio"""
+    try:
+        from twilio.rest import Client
+        
+        # Dane Twilio ze zmiennych środowiskowych
+        account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+        from_phone = os.getenv("TWILIO_PHONE_NUMBER")
+        
+        # Sprawdź czy wszystkie wymagane zmienne są ustawione
+        if not account_sid:
+            raise Exception("❌ TWILIO_ACCOUNT_SID nie jest ustawiony w zmiennych środowiskowych")
+        if not auth_token:
+            raise Exception("❌ TWILIO_AUTH_TOKEN nie jest ustawiony w zmiennych środowiskowych")
+        if not from_phone:
+            raise Exception("❌ TWILIO_PHONE_NUMBER nie jest ustawiony w zmiennych środowiskowych")
+        
+        # Inicjalizuj klienta Twilio
+        client = Client(account_sid, auth_token)
+        
+        # Treść wiadomości
+        message_body = sms_request.message_content or "Domyślna treść wiadomości"
+        
+        # Wyślij SMS
+        message = client.messages.create(
+            from_=from_phone,
+            body=message_body,
+            to=sms_request.phone_number
+        )
+        
+        print(f"✅ SMS wysłany pomyślnie: {message.sid}")
+        
+        return TestSMSResponse(
+            success=True,
+            message="SMS wysłany pomyślnie",
+            message_id=message.sid,
+            message_content=message_body
+        )
+        
+    except Exception as e:
+        error_message = str(e)
+        print(f"❌ Błąd podczas wysyłania SMS: {error_message}")
+        
+        return TestSMSResponse(
+            success=False,
+            message=f"Błąd podczas wysyłania SMS: {error_message}",
+            message_id=None,
+            message_content=None
+        )
 
 @app.get("/qrcode/{review_code}")
 async def get_qr_code_image(review_code: str, size: int = 200):
@@ -787,10 +835,10 @@ async def get_qr_code_image(review_code: str, size: int = 200):
         raise HTTPException(status_code=500, detail=f"Błąd podczas generowania kodu QR: {str(e)}")
 
 # Endpoint do logowania klienta
-@app.post("/client-login", response_model=ClientLoginResponse)
-async def client_login(client_data: ClientLoginRequest):
-    """Zapisz dane klienta i wygeneruj kod recenzji"""
-    print(f"👤 Logowanie klienta: {client_data.name} {client_data.surname}")
+@app.post("/client-login/{username}", response_model=ClientLoginResponse)
+async def client_login(username: str, client_data: ClientLoginRequest):
+    """Zapisz dane klienta i wygeneruj kod recenzji dla konkretnego użytkownika"""
+    print(f"👤 Logowanie klienta: {client_data.name} dla użytkownika: {username}")
     
     if not db:
         raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
@@ -799,21 +847,27 @@ async def client_login(client_data: ClientLoginRequest):
         # Generuj unikalny kod recenzji
         review_code = generate_review_code()
         
-        # Zapisz dane klienta w kolekcji "temp_clients" (tymczasowi klienci)
-        temp_client_data = {
+        # Zapisz dane klienta w kolekcji użytkownika z informacją o właścicielu
+        now = datetime.now()
+        client_data_dict = {
             "name": client_data.name,
-            "surname": client_data.surname,
             "phone": client_data.phone,
+            "note": client_data.note,
+            "stars": client_data.stars,
+            "review": "",
             "review_code": review_code,
-            "created_at": datetime.now(),
-            "status": "pending_review"
+            "review_status": "not_sent",
+            "created_at": now,
+            "updated_at": now,
+            "status": "pending_review",
+            "owner_username": username  # Dodaj informację o właścicielu
         }
         
-        # Dodaj do kolekcji temp_clients
-        temp_clients_ref = db.collection("temp_clients")
-        doc_ref = temp_clients_ref.add(temp_client_data)[1]
+        # Dodaj do kolekcji użytkownika
+        user_clients_ref = db.collection(username)
+        doc_ref = user_clients_ref.add(client_data_dict)[1]
         
-        print(f"✅ Klient zapisany z kodem: {review_code}")
+        print(f"✅ Klient zapisany z kodem: {review_code} dla użytkownika: {username}")
         
         return ClientLoginResponse(
             review_code=review_code,
