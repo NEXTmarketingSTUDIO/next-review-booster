@@ -128,7 +128,7 @@ const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }) => {
       <div className="auth-form">
         <div className="auth-header">
           <h2>Zarejestruj się</h2>
-          <p>Dołącz do społeczności NextReviews!</p>
+          <p>Dołącz do społeczności NEXT reviews BOOSTER!</p>
         </div>
 
         {error && (

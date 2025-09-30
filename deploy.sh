@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# 🚀 Skrypt deploymentu NextReviews
+# 🚀 Skrypt deploymentu NEXT reviews BOOSTER
 # Deployuje frontend na Firebase Hosting
 
-echo "🚀 Rozpoczynam deployment NextReviews..."
+echo "🚀 Rozpoczynam deployment NEXT reviews BOOSTER..."
 
 # Kolory dla lepszej czytelności
 RED='\033[0;31m'

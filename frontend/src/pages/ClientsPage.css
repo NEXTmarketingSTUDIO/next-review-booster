@@ -25,14 +25,17 @@
 .clients-header .btn {
   font-size: 1.1rem;
   padding: 0.8rem 2rem;
-  border-radius: 50px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  background: #fca212;
+  color: #ffffff;
+  border: none;
   transition: all 0.3s ease;
 }
 
 .clients-header .btn:hover {
+  background: #000000;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
 /* Stały przycisk dodawania */
@@ -43,7 +46,7 @@
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  background: #fca212;
   border: none;
   color: white;
   font-size: 2rem;
@@ -168,9 +171,12 @@
 
 .form-actions .btn {
   padding: 0.8rem 1.5rem;
-  border-radius: 10px;
+  border-radius: 8px;
   font-weight: 600;
   transition: all 0.3s ease;
+  background: #fca212;
+  color: #ffffff;
+  border: none;
 }
 
 /* Lista klientów */
@@ -238,7 +244,7 @@
 }
 
 .clients-table thead {
-  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  background: #fca212;
   color: white;
 }
 
@@ -339,10 +345,9 @@
 }
 
 .expand-review-btn {
-  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  background: #fca212;
   color: white;
   border: none;
-  border-radius: 6px;
   padding: 0.3rem 0.6rem;
   font-size: 0.75rem;
   font-weight: 600;
@@ -382,7 +387,6 @@
 .client-actions .btn-icon {
   margin: 0 0.2rem;
   padding: 0.4rem;
-  border-radius: 6px;
   font-size: 1rem;
   transition: all 0.3s ease;
 }
@@ -420,7 +424,6 @@
   font-size: 1rem;
   cursor: pointer;
   padding: 0.2rem;
-  border-radius: 4px;
   transition: background-color 0.3s ease;
 }
 

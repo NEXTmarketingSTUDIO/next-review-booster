@@ -279,6 +279,12 @@ async def create_client(username: str, client_data: ClientCreate):
         client_data_dict["id"] = doc.id
         print(f"📖 Odczytane dane: {client_data_dict}")
         
+        # Konwertuj Firebase Timestamp na datetime
+        if "created_at" in client_data_dict and hasattr(client_data_dict["created_at"], 'to_pydatetime'):
+            client_data_dict["created_at"] = client_data_dict["created_at"].to_pydatetime()
+        if "updated_at" in client_data_dict and hasattr(client_data_dict["updated_at"], 'to_pydatetime'):
+            client_data_dict["updated_at"] = client_data_dict["updated_at"].to_pydatetime()
+        
         return ClientResponse(**client_data_dict)
         
     except Exception as e:
@@ -311,6 +317,12 @@ async def get_clients(username: str):
             print(f"📊 Dane klienta: {client_data}")
             
             try:
+                # Konwertuj Firebase Timestamp na datetime
+                if "created_at" in client_data and hasattr(client_data["created_at"], 'to_pydatetime'):
+                    client_data["created_at"] = client_data["created_at"].to_pydatetime()
+                if "updated_at" in client_data and hasattr(client_data["updated_at"], 'to_pydatetime'):
+                    client_data["updated_at"] = client_data["updated_at"].to_pydatetime()
+                
                 # Upewnij się, że wszystkie wymagane pola są obecne
                 if "note" not in client_data:
                     client_data["note"] = ""
@@ -357,6 +369,12 @@ async def get_client(username: str, client_id: str):
         client_data = doc.to_dict()
         client_data["id"] = doc.id
         
+        # Konwertuj Firebase Timestamp na datetime
+        if "created_at" in client_data and hasattr(client_data["created_at"], 'to_pydatetime'):
+            client_data["created_at"] = client_data["created_at"].to_pydatetime()
+        if "updated_at" in client_data and hasattr(client_data["updated_at"], 'to_pydatetime'):
+            client_data["updated_at"] = client_data["updated_at"].to_pydatetime()
+        
         return ClientResponse(**client_data)
         
     except HTTPException:
@@ -388,6 +406,12 @@ async def update_client(username: str, client_id: str, client_data: ClientUpdate
         updated_doc = doc_ref.get()
         client_data_dict = updated_doc.to_dict()
         client_data_dict["id"] = updated_doc.id
+        
+        # Konwertuj Firebase Timestamp na datetime
+        if "created_at" in client_data_dict and hasattr(client_data_dict["created_at"], 'to_pydatetime'):
+            client_data_dict["created_at"] = client_data_dict["created_at"].to_pydatetime()
+        if "updated_at" in client_data_dict and hasattr(client_data_dict["updated_at"], 'to_pydatetime'):
+            client_data_dict["updated_at"] = client_data_dict["updated_at"].to_pydatetime()
         
         return ClientResponse(**client_data_dict)
         

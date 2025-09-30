@@ -6,7 +6,7 @@
 
 /* Sekcja podziękowań dla 5 gwiazdek */
 .thanks-section {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: #f8f9fa;
   border-radius: 12px;
   padding: 2rem;
   text-align: center;
@@ -176,24 +176,26 @@
 
 .btn {
   padding: 1rem 2rem;
-  border-radius: 50px;
+  border-radius: 8px;
   font-weight: 600;
   font-size: 1.1rem;
   transition: all 0.3s ease;
   border: none;
   cursor: pointer;
   min-width: 200px;
+  background: #fca212;
+  color: #ffffff;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-  color: white;
-  box-shadow: 0 4px 15px rgba(255, 165, 0, 0.3);
+  background: #fca212;
+  color: #ffffff;
 }
 
 .btn-primary:hover:not(:disabled) {
+  background: #000000;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 165, 0, 0.4);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
 .btn-primary:disabled {
@@ -322,7 +324,7 @@
 .google-card-section {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: #f8f9fa;
   border-radius: 12px;
   border: 1px solid #dee2e6;
 }
@@ -350,7 +352,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+  background: #4285f4;
   color: white;
   text-decoration: none;
   border-radius: 8px;

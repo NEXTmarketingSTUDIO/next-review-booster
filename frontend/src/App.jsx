@@ -13,6 +13,7 @@ import QRCodePage from './pages/QRCodePage';
 import ClientLoginPage from './pages/ClientLoginPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsPage from './pages/TermsPage';
+import logoImage from './assets/NEXT_reviews_BOOSTER_LOGO.jpg';
 import './App.css';
 
 // Komponent wewnętrzny z dostępem do useLocation
@@ -63,7 +64,7 @@ function AppContent() {
           <div className="container">
             <div className="nav-content">
               <Link to="/" className="logo">
-                <img src="./images/NEXT_reviews_BOOSTER_LOGO.jpg" alt="Logo" className="logo-image" />
+                <img src={logoImage} alt="NEXT reviews BOOSTER" className="logo-image" />
               </Link>
               
               <div className="nav-links">
@@ -119,7 +120,7 @@ function AppContent() {
                         Automatyzuj zbieranie opinii i buduj reputację swojej firmy
                       </h1>
                       <p className="hero-subtitle">
-                        NextReviews to innowacyjna platforma, która pomaga Twojej firmie automatycznie zbierać pozytywne recenzje od zadowolonych klientów, jednocześnie chroniąc Cię przed negatywnymi opiniami w internecie.
+                        NEXT reviews BOOSTER to innowacyjna platforma, która pomaga Twojej firmie automatycznie zbierać pozytywne recenzje od zadowolonych klientów, jednocześnie chroniąc Cię przed negatywnymi opiniami w internecie.
                       </p>
                       
                       <div className="hero-buttons">
@@ -133,7 +134,7 @@ function AppContent() {
                     </div>
                     
                     <div className="hero-visual">
-                      <img src="./images/NEXT_reviews_BOOSTER_LOGO.jpg" alt="NextReviews Logo" className="hero-logo" />
+                      <img src={logoImage} alt="NEXT reviews BOOSTER Logo" className="hero-logo" />
                     </div>
                   </div>
                 </div>
@@ -143,7 +144,7 @@ function AppContent() {
               <section className="features">
                 <div className="container">
                   <div className="section-header">
-                    <h2>Jak działa NextReviews?</h2>
+                    <h2>Jak działa NEXT reviews BOOSTER?</h2>
                     <p>Prosty proces, który automatycznie zwiększa liczbę pozytywnych opinii o Twojej firmie</p>
                   </div>
                   
@@ -180,7 +181,7 @@ function AppContent() {
                 <div className="container">
                   <div className="benefits-content">
                     <div className="benefits-text">
-                      <h2>Dlaczego NextReviews?</h2>
+                      <h2>Dlaczego NEXT reviews BOOSTER?</h2>
                       <div className="benefits-list">
                         <div className="benefit-item">
                           <div className="benefit-icon">⭐</div>
@@ -242,7 +243,7 @@ function AppContent() {
                 <div className="container">
                   <div className="cta-content">
                     <h2>Gotowy na zwiększenie liczby pozytywnych opinii?</h2>
-                    <p>Dołącz do firm, które już używają NextReviews do budowania swojej reputacji online</p>
+                    <p>Dołącz do firm, które już używają NEXT reviews BOOSTER do budowania swojej reputacji online</p>
                     <div className="cta-buttons">
                       <Link to="/register" className="btn btn-primary btn-large">
                         Rozpocznij za darmo
@@ -351,14 +352,14 @@ function AppContent() {
                   <div className="contact-content">
                     <div className="contact-info">
                       <h2>Skontaktuj się z nami</h2>
-                      <p>Masz pytania? Chcesz dowiedzieć się więcej o NextReviews? Jesteśmy tutaj, aby pomóc!</p>
+                      <p>Masz pytania? Chcesz dowiedzieć się więcej o NEXT reviews BOOSTER? Jesteśmy tutaj, aby pomóc!</p>
                       
                       <div className="contact-methods">
                         <div className="contact-method">
                           <div className="contact-icon">📧</div>
                           <div className="contact-details">
                             <h4>Email</h4>
-                            <p>kontakt@nextreviews.pl</p>
+                            <p>kontakt@next-reviews-booster.com</p>
                           </div>
                         </div>
                         
@@ -415,7 +416,7 @@ function AppContent() {
                       <a href="/register">Rejestracja</a>
                     </div>
                     <div className="footer-copyright">
-                      © 2025 Created by NEXT marketing STUDIO | <a href="/polityka-prywatnosci">Polityka prywatności</a> | <a href="/regulamin">Regulamin</a>
+                      © 2025 Created by <a href="https://nextmarketingstudio.com/">NEXT marketing STUDIO</a> | <a href="/polityka-prywatnosci">Polityka prywatności</a> | <a href="/regulamin">Regulamin</a>
                     </div>
                   </div>
                 </div>
