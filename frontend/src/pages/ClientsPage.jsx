@@ -10,6 +10,7 @@ const ClientsPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [expandedReviews, setExpandedReviews] = useState(new Set());
+  const [sendingSMS, setSendingSMS] = useState(new Set());
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -138,6 +139,35 @@ const ClientsPage = () => {
       return newSet;
     });
   };
+
+  const handleSendSMS = async (client) => {
+    if (!user?.email || !client.phone) {
+      alert('❌ Klient nie ma numeru telefonu');
+      return;
+    }
+
+    if (window.confirm(`Czy chcesz wysłać SMS do ${client.name} (${client.phone})?`)) {
+      try {
+        setSendingSMS(prev => new Set(prev).add(client.id));
+        
+        const username = user.email.split('@')[0];
+        const result = await apiService.sendSMS(username, client.id);
+        
+        alert('✅ SMS został wysłany pomyślnie!');
+        fetchClients(); // Odśwież listę klientów
+      } catch (error) {
+        console.error('❌ Błąd wysyłania SMS:', error);
+        alert('❌ Wystąpił błąd podczas wysyłania SMS: ' + (error.response?.data?.detail || error.message));
+      } finally {
+        setSendingSMS(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(client.id);
+          return newSet;
+        });
+      }
+    }
+  };
+
 
   return (
     <div className="clients-page">
@@ -309,6 +339,16 @@ const ClientsPage = () => {
                         }
                       </td>
                       <td className="client-actions">
+                        {client.phone && (
+                          <button 
+                            className={`btn-icon sms ${sendingSMS.has(client.id) ? 'loading' : ''}`}
+                            onClick={() => handleSendSMS(client)}
+                            disabled={sendingSMS.has(client.id)}
+                            title="Wyślij SMS z linkiem do opinii"
+                          >
+                            {sendingSMS.has(client.id) ? '⏳' : '📱'}
+                          </button>
+                        )}
                         <button 
                           className="btn-icon edit"
                           onClick={() => handleEdit(client)}

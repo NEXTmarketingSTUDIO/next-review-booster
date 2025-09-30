@@ -242,7 +242,37 @@ export const apiService = {
       console.error('❌ API: Błąd logowania klienta:', error);
       throw error;
     }
-  }
+  },
+
+  // Endpointy dla SMS
+  async sendSMS(username, clientId) {
+    console.log('📱 API: Wysyłanie SMS dla:', username, clientId);
+    try {
+      const response = await api.post(`/send-sms/${username}/${clientId}`);
+      console.log('✅ API: SMS wysłany:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ API: Błąd wysyłania SMS:', error);
+      throw error;
+    }
+  },
+
+  async sendSMSDirect(username, toPhone, message, clientName = '') {
+    console.log('📱 API: Bezpośrednie wysyłanie SMS do:', toPhone);
+    try {
+      const response = await api.post(`/send-sms-direct/${username}`, {
+        to_phone: toPhone,
+        message: message,
+        client_name: clientName
+      });
+      console.log('✅ API: SMS wysłany bezpośrednio:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ API: Błąd wysyłania SMS bezpośrednio:', error);
+      throw error;
+    }
+  },
+
 };
 
 export default api;

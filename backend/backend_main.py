@@ -13,6 +13,18 @@ import qrcode
 import io
 import base64
 from fastapi.responses import StreamingResponse
+from twilio.rest import Client
+
+# Załaduj zmienne środowiskowe z pliku .env (jeśli istnieje)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("✅ Załadowano zmienne środowiskowe z pliku .env")
+except ImportError:
+    print("⚠️ python-dotenv nie zainstalowany - używaj zmiennych systemowych")
+
+# Inicjalizacja Twilio - będzie inicjalizowany per użytkownik z Firebase
+twilio_client = None
 
 # Inicjalizacja Firebase Admin
 try:
@@ -127,13 +139,20 @@ class UserData(BaseModel):
     companyName: str = ""
     googleCard: str = ""
 
+class TwilioSettings(BaseModel):
+    account_sid: str = ""
+    auth_token: str = ""
+    phone_number: str = ""
+
 class MessagingSettings(BaseModel):
     reminderFrequency: int = 7
     messageTemplate: str = ""
+    autoSendEnabled: bool = False  # Czy automatyczne wysyłanie jest włączone
 
 class UserSettings(BaseModel):
     userData: UserData
     messaging: MessagingSettings
+    twilio: Optional[TwilioSettings] = None
 
 class UserSettingsResponse(BaseModel):
     settings: UserSettings
@@ -168,23 +187,111 @@ class ClientLoginResponse(BaseModel):
     review_code: str
     message: str
 
-# Modele dla testowego SMS
-class TestSMSRequest(BaseModel):
-    phone_number: str
-    username: str
-    message_content: Optional[str] = None  # Opcjonalna treść wiadomości z frontendu
+# Modele dla SMS
+class SMSRequest(BaseModel):
+    to_phone: str
+    message: str
+    client_name: str = ""
 
-class TestSMSResponse(BaseModel):
+class SMSResponse(BaseModel):
     success: bool
     message: str
-    message_id: Optional[str] = None
-    message_content: Optional[str] = None
+    sid: Optional[str] = None
+
+# Funkcja do inicjalizacji Twilio dla konkretnego użytkownika
+def get_twilio_client_for_user(username: str):
+    """Pobierz klienta Twilio dla konkretnego użytkownika z Firebase"""
+    if not db:
+        return None
+    
+    try:
+        # Pobierz ustawienia użytkownika
+        settings_doc = db.collection(username).document("Dane").get()
+        
+        if not settings_doc.exists:
+            print(f"⚠️ Brak ustawień dla użytkownika: {username}")
+            return None
+        
+        settings_data = settings_doc.to_dict()
+        
+        # Sprawdź czy użytkownik ma skonfigurowane Twilio
+        if "twilio" not in settings_data:
+            print(f"⚠️ Użytkownik {username} nie ma skonfigurowanego Twilio")
+            return None
+        
+        twilio_config = settings_data["twilio"]
+        
+        account_sid = twilio_config.get("account_sid")
+        auth_token = twilio_config.get("auth_token")
+        phone_number = twilio_config.get("phone_number")
+        
+        if not all([account_sid, auth_token, phone_number]):
+            print(f"⚠️ Niekompletna konfiguracja Twilio dla użytkownika: {username}")
+            return None
+        
+        # Utwórz klienta Twilio
+        client = Client(account_sid, auth_token)
+        print(f"✅ Twilio skonfigurowany dla użytkownika: {username}")
+        
+        return {
+            "client": client,
+            "phone_number": phone_number
+        }
+        
+    except Exception as e:
+        print(f"❌ Błąd inicjalizacji Twilio dla użytkownika {username}: {e}")
+        return None
+
+# Funkcja do wysyłania SMS przez Twilio
+async def send_sms(to_phone: str, message: str, twilio_config: dict) -> dict:
+    """Wysyła SMS przez Twilio"""
+    if not twilio_config:
+        raise HTTPException(status_code=500, detail="Twilio nie jest skonfigurowany")
+    
+    try:
+        client = twilio_config["client"]
+        phone_number = twilio_config["phone_number"]
+        
+        # Wyczyść numer telefonu (usuń spacje, myślniki)
+        clean_phone = ''.join(filter(str.isdigit, to_phone))
+        
+        # Dodaj kod kraju jeśli nie ma
+        if not clean_phone.startswith('48') and len(clean_phone) == 9:
+            clean_phone = '48' + clean_phone
+        elif clean_phone.startswith('+'):
+            clean_phone = clean_phone[1:]  # Usuń +
+        
+        # Dodaj + na początku
+        formatted_phone = '+' + clean_phone
+        
+        print(f"📱 Wysyłanie SMS do: {formatted_phone}")
+        print(f"💬 Treść: {message}")
+        print(f"📞 Z numeru: {phone_number}")
+        
+        message_obj = client.messages.create(
+            body=message,
+            from_=phone_number,
+            to=formatted_phone
+        )
+        
+        print(f"✅ SMS wysłany pomyślnie. SID: {message_obj.sid}")
+        
+        return {
+            "success": True,
+            "message": "SMS został wysłany pomyślnie",
+            "sid": message_obj.sid
+        }
+        
+    except Exception as e:
+        print(f"❌ Błąd wysyłania SMS: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd wysyłania SMS: {str(e)}")
 
 # Funkcja do generowania unikalnego kodu recenzji
 def generate_review_code():
     """Generuje unikalny kod recenzji (10 znaków alfanumerycznych)"""
     alphabet = string.ascii_lowercase + string.digits
     return ''.join(secrets.choice(alphabet) for _ in range(10))
+
 
 # Funkcja do generowania kodu QR
 def generate_qr_code(data: str, size: int = 200) -> bytes:
@@ -484,8 +591,9 @@ Link do wystawienia opinii: [LINK]
 Z góry dziękuję za poświęcony czas!
 
 Z poważaniem,
-[NAZWA_FIRMY]"""
-                )
+[NAZWA_FIRMY]""",
+                    autoSendEnabled=False
+                ),
             )
             return UserSettingsResponse(settings=default_settings)
         
@@ -811,58 +919,11 @@ async def generate_company_qr_code(username: str, request: QRCodeRequest):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Błąd podczas generowania kodu QR: {str(e)}")
 
-# Endpoint do wysyłania SMS
-@app.post("/send-sms", response_model=TestSMSResponse)
-async def send_sms(sms_request: TestSMSRequest):
-    """Endpoint do wysyłania SMS przez Twilio"""
-    try:
-        from twilio.rest import Client
-        
-        # Dane Twilio ze zmiennych środowiskowych
-        account_sid = os.getenv("TWILIO_ACCOUNT_SID")
-        auth_token = os.getenv("TWILIO_AUTH_TOKEN")
-        from_phone = os.getenv("TWILIO_PHONE_NUMBER")
-        
-        # Sprawdź czy wszystkie wymagane zmienne są ustawione
-        if not account_sid:
-            raise Exception("❌ TWILIO_ACCOUNT_SID nie jest ustawiony w zmiennych środowiskowych")
-        if not auth_token:
-            raise Exception("❌ TWILIO_AUTH_TOKEN nie jest ustawiony w zmiennych środowiskowych")
-        if not from_phone:
-            raise Exception("❌ TWILIO_PHONE_NUMBER nie jest ustawiony w zmiennych środowiskowych")
-        
-        # Inicjalizuj klienta Twilio
-        client = Client(account_sid, auth_token)
-        
-        # Treść wiadomości
-        message_body = sms_request.message_content or "Domyślna treść wiadomości"
-        
-        # Wyślij SMS
-        message = client.messages.create(
-            from_=from_phone,
-            body=message_body,
-            to=sms_request.phone_number
-        )
-        
-        print(f"✅ SMS wysłany pomyślnie: {message.sid}")
-        
-        return TestSMSResponse(
-            success=True,
-            message="SMS wysłany pomyślnie",
-            message_id=message.sid,
-            message_content=message_body
-        )
-        
-    except Exception as e:
-        error_message = str(e)
-        print(f"❌ Błąd podczas wysyłania SMS: {error_message}")
-        
-        return TestSMSResponse(
-            success=False,
-            message=f"Błąd podczas wysyłania SMS: {error_message}",
-            message_id=None,
-            message_content=None
-        )
+
+
+
+
+
 
 @app.get("/qrcode/{review_code}")
 async def get_qr_code_image(review_code: str, size: int = 200):
@@ -943,6 +1004,114 @@ async def client_login(username: str, client_data: ClientLoginRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Błąd podczas zapisywania danych: {str(e)}")
+
+# Endpoint do wysyłania SMS
+@app.post("/send-sms/{username}/{client_id}", response_model=SMSResponse)
+async def send_sms_to_client(username: str, client_id: str):
+    """Wyślij SMS do klienta z linkiem do opinii"""
+    print(f"📱 Wysyłanie SMS dla użytkownika: {username}, klient: {client_id}")
+    
+    if not db:
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Pobierz konfigurację Twilio dla użytkownika
+        twilio_config = get_twilio_client_for_user(username)
+        if not twilio_config:
+            raise HTTPException(status_code=400, detail="Twilio nie jest skonfigurowany dla tego użytkownika")
+        
+        # Pobierz dane klienta
+        doc_ref = db.collection(username).document(client_id)
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail="Klient nie został znaleziony")
+        
+        client_data = doc.to_dict()
+        client_phone = client_data.get("phone", "")
+        client_name = client_data.get("name", "")
+        review_code = client_data.get("review_code", "")
+        
+        if not client_phone:
+            raise HTTPException(status_code=400, detail="Klient nie ma numeru telefonu")
+        
+        if not review_code:
+            raise HTTPException(status_code=400, detail="Klient nie ma kodu recenzji")
+        
+        # Pobierz ustawienia użytkownika (szablon wiadomości)
+        settings_doc = db.collection(username).document("Dane").get()
+        message_template = """Dzień dobry!
+
+Chciałbym przypomnieć o możliwości wystawienia opinii o naszych usługach. 
+Wasza opinia jest dla nas bardzo ważna i pomoże innym klientom w podjęciu decyzji.
+
+Link do wystawienia opinii: [LINK]
+
+Z góry dziękuję za poświęcony czas!
+
+Z poważaniem,
+[NAZWA_FIRMY]"""
+        
+        company_name = "Twoja Firma"
+        
+        if settings_doc.exists:
+            settings_data = settings_doc.to_dict()
+            if "messaging" in settings_data and "messageTemplate" in settings_data["messaging"]:
+                message_template = settings_data["messaging"]["messageTemplate"]
+            if "userData" in settings_data and "companyName" in settings_data["userData"]:
+                company_name = settings_data["userData"]["companyName"]
+        
+        # Generuj URL do formularza recenzji
+        base_url = os.getenv("FRONTEND_URL", "https://next-reviews-9d19c.web.app")
+        review_url = f"{base_url}/review/{review_code}"
+        
+        # Przygotuj wiadomość SMS
+        message = message_template.replace("[LINK]", review_url).replace("[NAZWA_FIRMY]", company_name)
+        
+        # Wyślij SMS
+        result = await send_sms(client_phone, message, twilio_config)
+        
+        # Zaktualizuj status klienta
+        doc_ref.update({
+            "review_status": "sent",
+            "updated_at": datetime.now()
+        })
+        
+        print(f"✅ SMS wysłany do {client_name} ({client_phone})")
+        
+        return SMSResponse(**result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Błąd podczas wysyłania SMS: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Błąd podczas wysyłania SMS: {str(e)}")
+
+# Endpoint do wysyłania SMS bezpośrednio (dla testów)
+@app.post("/send-sms-direct/{username}", response_model=SMSResponse)
+async def send_sms_direct(username: str, sms_request: SMSRequest):
+    """Wyślij SMS bezpośrednio (dla testów)"""
+    print(f"📱 Bezpośrednie wysyłanie SMS do: {sms_request.to_phone}")
+    
+    if not db:
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Pobierz konfigurację Twilio dla użytkownika
+        twilio_config = get_twilio_client_for_user(username)
+        if not twilio_config:
+            raise HTTPException(status_code=400, detail="Twilio nie jest skonfigurowany dla tego użytkownika")
+        
+        result = await send_sms(sms_request.to_phone, sms_request.message, twilio_config)
+        return SMSResponse(**result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Błąd podczas wysyłania SMS: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd podczas wysyłania SMS: {str(e)}")
 
 # Uruchomienie serwera
 if __name__ == "__main__":
