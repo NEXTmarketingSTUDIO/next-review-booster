@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: '/', // Ważne dla Firebase Hosting
+  publicDir: 'public', // Folder z plikami statycznymi
   build: {
     outDir: 'dist',
     assetsDir: 'assets',

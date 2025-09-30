@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# 🚀 Skrypt uruchamiający NextReviews - Frontend + Backend
-# Autor: NextReviews Team
+# 🚀 Skrypt uruchamiający NEXT reviews BOOSTER - Frontend + Backend
+# Autor: NEXT marketing STUDIO
 # Opis: Uruchamia jednocześnie React frontend i FastAPI backend
 
-echo "🎉 Uruchamianie aplikacji NextReviews..."
+echo "🎉 Uruchamianie aplikacji NEXT reviews BOOSTER..."
 echo "=================================="
 
 # Kolory dla lepszej czytelności
@@ -192,7 +192,7 @@ fi
 echo -e "${GREEN}✅ Frontend uruchomiony (PID: $FRONTEND_PID)${NC}"
 
 echo ""
-echo -e "${GREEN}🎉 Aplikacja NextReviews uruchomiona pomyślnie!${NC}"
+echo -e "${GREEN}🎉 Aplikacja NEXT reviews BOOSTER uruchomiona pomyślnie!${NC}"
 echo "=================================="
 echo -e "${BLUE}📱 Frontend:${NC} http://localhost:3000"
 echo -e "${BLUE}🔧 Backend:${NC}  http://localhost:8000"

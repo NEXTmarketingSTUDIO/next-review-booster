@@ -301,7 +301,12 @@ const ClientsPage = () => {
                         )}
                       </td>
                       <td className="client-date">
-                        {client.updatedAt?.toDate?.()?.toLocaleDateString('pl-PL') || 'Nieznana data'}
+                        {client.updated_at ? 
+                          (typeof client.updated_at === 'string' 
+                            ? new Date(client.updated_at).toLocaleDateString('pl-PL')
+                            : client.updated_at.toLocaleDateString('pl-PL')
+                          ) : 'Nieznana data'
+                        }
                       </td>
                       <td className="client-actions">
                         <button 

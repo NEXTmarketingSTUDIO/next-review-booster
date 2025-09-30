@@ -1,6 +1,6 @@
-# 📝 NextReviews - Aplikacja Recenzji
+# 📝 NEXT reviews BOOSTER - Automatyzacja zbierania opinii
 
-Nowoczesna aplikacja do zarządzania recenzjami zbudowana w **React + Vite** frontend i **FastAPI** backend, inspirowana designem [Next Marketing Studio](https://nextmarketingstudio.com/).
+Nowoczesna aplikacja do automatyzacji zbierania opinii zbudowana w **React + Vite** frontend i **FastAPI** backend, inspirowana designem [Next Marketing Studio](https://nextmarketingstudio.com/).
 
 ## 🎨 Design
 
@@ -14,7 +14,7 @@ Aplikacja wykorzystuje kolorystykę i styl inspirowany Next Marketing Studio:
 ## 🏗️ Architektura
 
 ```
-nextreviews/
+next-reviews-booster/
 ├── frontend/                 # React + Vite frontend
 │   ├── src/
 │   │   ├── App.jsx          # Główny komponent
@@ -71,7 +71,7 @@ Po uruchomieniu aplikacja będzie dostępna pod adresami:
 ## ✨ Funkcje
 
 ### 🎯 Główna strona
-- **Nazwa aplikacji**: "Next Reviews" w stylu Next Marketing Studio
+- **Nazwa aplikacji**: "NEXT reviews BOOSTER" w stylu Next Marketing Studio
 - **Status połączenia**: Real-time sprawdzanie połączenia z backendem
 - **Health endpoint**: Wyświetlanie danych z `/health`
 - **Nowoczesny design**: Gradienty, animacje, glassmorphism
@@ -166,7 +166,7 @@ gunicorn backend_main:app -w 4 -k uvicorn.workers.UvicornWorker
 
 ## 📄 Licencja
 
-Projekt NextReviews - aplikacja do zarządzania recenzjami.
+Projekt NEXT reviews BOOSTER - aplikacja do automatyzacji zbierania opinii.
 
 ---
 
