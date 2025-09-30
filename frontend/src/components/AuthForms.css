@@ -89,6 +89,36 @@
   opacity: 0.7;
 }
 
+/* Sekcje formularza */
+.form-section-divider {
+  margin: 2rem 0 1.5rem 0;
+  padding: 1.5rem 0;
+  border-top: 2px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.form-section-divider h3 {
+  color: var(--text-dark);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.form-section-divider p {
+  color: var(--text-nav);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Help text */
+.help-text {
+  color: var(--text-nav);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  line-height: 1.4;
+  font-style: italic;
+}
+
 /* Przyciski */
 .btn {
   display: flex;

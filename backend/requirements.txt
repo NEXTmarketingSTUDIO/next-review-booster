@@ -5,3 +5,4 @@ firebase_admin==7.1.0
 pydantic==2.10.3
 python-multipart==0.0.20
 qrcode[pil]==7.4.2
+twilio==9.2.3

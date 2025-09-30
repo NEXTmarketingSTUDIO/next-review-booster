@@ -195,6 +195,8 @@ const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }) => {
             />
           </div>
 
+
+
           <button 
             type="submit" 
             className="btn btn-primary"

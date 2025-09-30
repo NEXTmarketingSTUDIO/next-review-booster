@@ -395,6 +395,21 @@
   transform: scale(1.1);
 }
 
+.client-actions .btn-icon.sms {
+  background: #28a745;
+  color: white;
+}
+
+.client-actions .btn-icon.sms:hover {
+  background: #218838;
+}
+
+.client-actions .btn-icon.sms.loading {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+
 .client-review-code {
   text-align: center;
   min-width: 120px;
