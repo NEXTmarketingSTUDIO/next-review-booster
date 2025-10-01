@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 import uvicorn
 import firebase_admin
@@ -14,6 +14,8 @@ import io
 import base64
 from fastapi.responses import StreamingResponse
 from twilio.rest import Client
+from apscheduler.schedulers.background import BackgroundScheduler
+import asyncio
 
 # Załaduj zmienne środowiskowe z pliku .env (jeśli istnieje)
 try:
@@ -105,6 +107,7 @@ class ClientCreate(BaseModel):
     review: str = ""  # Domyślnie puste - będzie wypełniane przez klienta
     review_code: str = ""  # Unikalny kod do wystawiania opinii
     review_status: str = "not_sent"  # Status recenzji: not_sent, sent, opened, completed
+    last_sms_sent: Optional[datetime] = None  # Kiedy ostatnio wysłano SMS
 
 class ClientUpdate(BaseModel):
     name: Optional[str] = None
@@ -114,6 +117,7 @@ class ClientUpdate(BaseModel):
     review: Optional[str] = None
     review_code: Optional[str] = None
     review_status: Optional[str] = None
+    last_sms_sent: Optional[datetime] = None
 
 class ClientResponse(BaseModel):
     id: str
@@ -126,6 +130,7 @@ class ClientResponse(BaseModel):
     review_status: str = "not_sent"
     created_at: datetime
     updated_at: datetime
+    last_sms_sent: Optional[datetime] = None
 
 class ClientListResponse(BaseModel):
     clients: List[ClientResponse]
@@ -329,6 +334,202 @@ def generate_qr_code(data: str, size: int = 200) -> bytes:
     
     return img_bytes.getvalue()
 
+# Funkcja do sprawdzania i wysyłania cyklicznych przypomnień SMS
+async def check_and_send_reminders():
+    """Sprawdź wszystkich klientów i wyślij przypomnienia SMS jeśli potrzebne"""
+    print("🔄 Rozpoczęcie sprawdzania przypomnień SMS...")
+    
+    if not db:
+        print("❌ Firebase nie jest skonfigurowany")
+        return
+    
+    try:
+        # Pobierz wszystkie kolekcje użytkowników
+        collections = db.collections()
+        total_reminders_sent = 0
+        
+        for collection in collections:
+            collection_name = collection.id
+            
+            # Pomiń kolekcje systemowe
+            if collection_name in ["temp_clients"]:
+                continue
+            
+            print(f"🔍 Sprawdzanie kolekcji: {collection_name}")
+            
+            # Sprawdź czy użytkownik ma włączone automatyczne przypomnienia
+            try:
+                settings_doc = db.collection(collection_name).document("Dane").get()
+                if not settings_doc.exists:
+                    print(f"⚠️ Brak ustawień dla użytkownika: {collection_name}")
+                    continue
+                
+                settings_data = settings_doc.to_dict()
+                
+                # Sprawdź czy autoSendEnabled jest włączone
+                auto_send_enabled = False
+                reminder_frequency = 7  # domyślnie 7 dni
+                
+                if "messaging" in settings_data:
+                    messaging = settings_data["messaging"]
+                    auto_send_enabled = messaging.get("autoSendEnabled", False)
+                    reminder_frequency = messaging.get("reminderFrequency", 7)
+                
+                if not auto_send_enabled:
+                    print(f"⏭️ Automatyczne przypomnienia wyłączone dla: {collection_name}")
+                    continue
+                
+                print(f"✅ Automatyczne przypomnienia włączone (częstotliwość: {reminder_frequency} dni)")
+                
+                # Pobierz konfigurację Twilio
+                twilio_config = get_twilio_client_for_user(collection_name)
+                if not twilio_config:
+                    print(f"⚠️ Brak konfiguracji Twilio dla użytkownika: {collection_name}")
+                    continue
+                
+                # Pobierz szablon wiadomości i nazwę firmy
+                message_template = """Dzień dobry!
+
+Chciałbym przypomnieć o możliwości wystawienia opinii o naszych usługach. 
+Wasza opinia jest dla nas bardzo ważna i pomoże innym klientom w podjęciu decyzji.
+
+Link do wystawienia opinii: [LINK]
+
+Z góry dziękuję za poświęcony czas!
+
+Z poważaniem,
+[NAZWA_FIRMY]"""
+                company_name = "Twoja Firma"
+                
+                if "messaging" in settings_data and "messageTemplate" in settings_data["messaging"]:
+                    message_template = settings_data["messaging"]["messageTemplate"]
+                if "userData" in settings_data and "companyName" in settings_data["userData"]:
+                    company_name = settings_data["userData"]["companyName"]
+                
+                # Pobierz wszystkich klientów tej kolekcji (pomijamy dokument "Dane")
+                docs = collection.stream()
+                
+                for doc in docs:
+                    # Pomiń dokument "Dane"
+                    if doc.id == "Dane":
+                        continue
+                    
+                    client_data = doc.to_dict()
+                    client_id = doc.id
+                    
+                    # Sprawdź czy klient spełnia warunki do wysłania przypomnienia
+                    review_status = client_data.get("review_status", "not_sent")
+                    phone = client_data.get("phone", "")
+                    review_code = client_data.get("review_code", "")
+                    client_name = client_data.get("name", "")
+                    
+                    # Pomiń klientów bez numeru telefonu lub kodu recenzji
+                    if not phone or not review_code:
+                        continue
+                    
+                    # Pomiń klientów którzy już ukończyli recenzję
+                    if review_status == "completed":
+                        continue
+                    
+                    # Sprawdź czy minął odpowiedni czas od ostatniego SMS
+                    last_sms_sent = client_data.get("last_sms_sent")
+                    created_at = client_data.get("created_at")
+                    
+                    now = datetime.now()
+                    should_send = False
+                    
+                    # Konwertuj Firebase Timestamp na datetime jeśli potrzeba
+                    if last_sms_sent and hasattr(last_sms_sent, 'to_pydatetime'):
+                        last_sms_sent = last_sms_sent.to_pydatetime()
+                    if created_at and hasattr(created_at, 'to_pydatetime'):
+                        created_at = created_at.to_pydatetime()
+                    
+                    if review_status == "not_sent":
+                        # Jeśli nigdy nie wysłano SMS, wyślij pierwszy raz
+                        if not last_sms_sent:
+                            should_send = True
+                            print(f"📤 Pierwszy SMS dla: {client_name}")
+                    elif review_status in ["sent", "opened"]:
+                        # Jeśli SMS był wysłany lub link był otwarty, sprawdź czy minął czas na przypomnienie
+                        if last_sms_sent:
+                            days_since_last_sms = (now - last_sms_sent).days
+                            if days_since_last_sms >= reminder_frequency:
+                                should_send = True
+                                print(f"🔔 Przypomnienie dla: {client_name} (ostatni SMS: {days_since_last_sms} dni temu)")
+                    
+                    if should_send:
+                        try:
+                            # Przygotuj URL do recenzji
+                            base_url = os.getenv("FRONTEND_URL", "https://next-reviews-9d19c.web.app")
+                            review_url = f"{base_url}/review/{review_code}"
+                            
+                            # Przygotuj wiadomość
+                            message = message_template.replace("[LINK]", review_url).replace("[NAZWA_FIRMY]", company_name)
+                            
+                            # Wyślij SMS
+                            print(f"📱 Wysyłanie przypomnienia SMS do: {client_name} ({phone})")
+                            result = await send_sms(phone, message, twilio_config)
+                            
+                            # Zaktualizuj status klienta
+                            doc_ref = db.collection(collection_name).document(client_id)
+                            update_data = {
+                                "last_sms_sent": now,
+                                "updated_at": now
+                            }
+                            
+                            # Jeśli to pierwszy SMS, zmień status na "sent"
+                            if review_status == "not_sent":
+                                update_data["review_status"] = "sent"
+                            
+                            doc_ref.update(update_data)
+                            
+                            total_reminders_sent += 1
+                            print(f"✅ Przypomnienie wysłane do: {client_name}")
+                            
+                        except Exception as sms_error:
+                            print(f"❌ Błąd wysyłania SMS do {client_name}: {str(sms_error)}")
+                            continue
+                
+            except Exception as user_error:
+                print(f"❌ Błąd przetwarzania użytkownika {collection_name}: {str(user_error)}")
+                continue
+        
+        print(f"✅ Sprawdzanie zakończone. Wysłano {total_reminders_sent} przypomnień")
+        return {"reminders_sent": total_reminders_sent}
+        
+    except Exception as e:
+        print(f"❌ Błąd podczas sprawdzania przypomnień: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {"error": str(e)}
+
+# Inicjalizacja schedulera
+scheduler = BackgroundScheduler()
+
+def run_async_check_and_send_reminders():
+    """Wrapper do uruchamiania async funkcji w scheduler"""
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(check_and_send_reminders())
+        loop.close()
+    except Exception as e:
+        print(f"❌ Błąd w schedulerze: {str(e)}")
+
+# Dodaj zadanie do schedulera - sprawdzaj co godzinę
+scheduler.add_job(
+    run_async_check_and_send_reminders,
+    'interval',
+    hours=1,
+    id='check_reminders',
+    name='Sprawdzanie i wysyłanie przypomnień SMS',
+    replace_existing=True
+)
+
+# Uruchom scheduler
+scheduler.start()
+print("✅ Scheduler przypomnień SMS uruchomiony (sprawdzanie co godzinę)")
+
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     return HealthResponse(
@@ -371,7 +572,8 @@ async def create_client(username: str, client_data: ClientCreate):
             "created_at": now,
             "updated_at": now,
             "review_code": review_code,
-            "review_status": "not_sent"
+            "review_status": "not_sent",
+            "last_sms_sent": None
         })
         print(f"📝 Dane do zapisu: {client_dict}")
         print(f"🔑 Wygenerowany kod recenzji: {review_code}")
@@ -391,6 +593,12 @@ async def create_client(username: str, client_data: ClientCreate):
             client_data_dict["created_at"] = client_data_dict["created_at"].to_pydatetime()
         if "updated_at" in client_data_dict and hasattr(client_data_dict["updated_at"], 'to_pydatetime'):
             client_data_dict["updated_at"] = client_data_dict["updated_at"].to_pydatetime()
+        if "last_sms_sent" in client_data_dict and client_data_dict["last_sms_sent"] and hasattr(client_data_dict["last_sms_sent"], 'to_pydatetime'):
+            client_data_dict["last_sms_sent"] = client_data_dict["last_sms_sent"].to_pydatetime()
+        
+        # Upewnij się, że last_sms_sent istnieje
+        if "last_sms_sent" not in client_data_dict:
+            client_data_dict["last_sms_sent"] = None
         
         return ClientResponse(**client_data_dict)
         
@@ -429,6 +637,8 @@ async def get_clients(username: str):
                     client_data["created_at"] = client_data["created_at"].to_pydatetime()
                 if "updated_at" in client_data and hasattr(client_data["updated_at"], 'to_pydatetime'):
                     client_data["updated_at"] = client_data["updated_at"].to_pydatetime()
+                if "last_sms_sent" in client_data and client_data["last_sms_sent"] and hasattr(client_data["last_sms_sent"], 'to_pydatetime'):
+                    client_data["last_sms_sent"] = client_data["last_sms_sent"].to_pydatetime()
                 
                 # Upewnij się, że wszystkie wymagane pola są obecne
                 if "note" not in client_data:
@@ -441,6 +651,8 @@ async def get_clients(username: str):
                     client_data["review_code"] = ""
                 if "review_status" not in client_data:
                     client_data["review_status"] = "not_sent"
+                if "last_sms_sent" not in client_data:
+                    client_data["last_sms_sent"] = None
                 
                 client_response = ClientResponse(**client_data)
                 clients.append(client_response)
@@ -481,6 +693,12 @@ async def get_client(username: str, client_id: str):
             client_data["created_at"] = client_data["created_at"].to_pydatetime()
         if "updated_at" in client_data and hasattr(client_data["updated_at"], 'to_pydatetime'):
             client_data["updated_at"] = client_data["updated_at"].to_pydatetime()
+        if "last_sms_sent" in client_data and client_data["last_sms_sent"] and hasattr(client_data["last_sms_sent"], 'to_pydatetime'):
+            client_data["last_sms_sent"] = client_data["last_sms_sent"].to_pydatetime()
+        
+        # Upewnij się, że last_sms_sent istnieje
+        if "last_sms_sent" not in client_data:
+            client_data["last_sms_sent"] = None
         
         return ClientResponse(**client_data)
         
@@ -519,6 +737,12 @@ async def update_client(username: str, client_id: str, client_data: ClientUpdate
             client_data_dict["created_at"] = client_data_dict["created_at"].to_pydatetime()
         if "updated_at" in client_data_dict and hasattr(client_data_dict["updated_at"], 'to_pydatetime'):
             client_data_dict["updated_at"] = client_data_dict["updated_at"].to_pydatetime()
+        if "last_sms_sent" in client_data_dict and client_data_dict["last_sms_sent"] and hasattr(client_data_dict["last_sms_sent"], 'to_pydatetime'):
+            client_data_dict["last_sms_sent"] = client_data_dict["last_sms_sent"].to_pydatetime()
+        
+        # Upewnij się, że last_sms_sent istnieje
+        if "last_sms_sent" not in client_data_dict:
+            client_data_dict["last_sms_sent"] = None
         
         return ClientResponse(**client_data_dict)
         
@@ -789,6 +1013,7 @@ async def submit_review(review_code: str, review_data: ReviewSubmission):
         
         # Znajdź klienta po kodzie recenzji
         found_client = None
+        found_collection = None
         is_temp_client = False
         
         # Najpierw sprawdź w kolekcji temp_clients
@@ -815,6 +1040,7 @@ async def submit_review(review_code: str, review_data: ReviewSubmission):
                 for doc in docs:
                     found_client = doc.to_dict()
                     found_client["id"] = doc.id
+                    found_collection = collection_name
                     break
                 
                 if found_client:
@@ -834,25 +1060,21 @@ async def submit_review(review_code: str, review_data: ReviewSubmission):
                 "status": "completed",
                 "updated_at": datetime.now()
             })
+            print(f"✅ Zaktualizowano tymczasowego klienta: {found_client['id']}")
         else:
-            # Dla stałych klientów
-            collections = db.collections()
-            for collection in collections:
-                collection_name = collection.id
-                if collection_name in ["Dane", "temp_clients"]:
-                    continue
-                docs = collection.where("review_code", "==", review_code).stream()
-                for doc in docs:
-                    doc_ref = db.collection(collection_name).document(doc.id)
-                    doc_ref.update({
-                        "stars": review_data.stars,
-                        "review": review_data.review,
-                        "review_status": "completed",
-                        "updated_at": datetime.now()
-                    })
-                    break
-                if docs:
-                    break
+            # Dla stałych klientów - użyj zapisanej nazwy kolekcji
+            if found_collection:
+                doc_ref = db.collection(found_collection).document(found_client["id"])
+                doc_ref.update({
+                    "stars": review_data.stars,
+                    "review": review_data.review,
+                    "review_status": "completed",
+                    "updated_at": datetime.now()
+                })
+                print(f"✅ Zaktualizowano klienta w kolekcji {found_collection}: {found_client['id']}")
+            else:
+                print(f"⚠️ Nie znaleziono kolekcji dla klienta")
+                raise HTTPException(status_code=500, detail="Nie można zaktualizować klienta")
         
         print(f"✅ Ocena zapisana: {review_data.stars} gwiazdek dla {found_client['name']}")
         print(f"💬 Recenzja: {review_data.review}")
@@ -985,7 +1207,8 @@ async def client_login(username: str, client_data: ClientLoginRequest):
             "created_at": now,
             "updated_at": now,
             "status": "pending_review",
-            "owner_username": username  # Dodaj informację o właścicielu
+            "owner_username": username,  # Dodaj informację o właścicielu
+            "last_sms_sent": None
         }
         
         # Dodaj do kolekcji użytkownika
@@ -1072,9 +1295,11 @@ Z poważaniem,
         result = await send_sms(client_phone, message, twilio_config)
         
         # Zaktualizuj status klienta
+        now = datetime.now()
         doc_ref.update({
             "review_status": "sent",
-            "updated_at": datetime.now()
+            "last_sms_sent": now,
+            "updated_at": now
         })
         
         print(f"✅ SMS wysłany do {client_name} ({client_phone})")
@@ -1112,6 +1337,49 @@ async def send_sms_direct(username: str, sms_request: SMSRequest):
     except Exception as e:
         print(f"❌ Błąd podczas wysyłania SMS: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Błąd podczas wysyłania SMS: {str(e)}")
+
+# Endpoint do ręcznego uruchomienia procesu wysyłania przypomnień
+@app.post("/reminders/send-now")
+async def send_reminders_now():
+    """Ręcznie uruchom proces wysyłania przypomnień SMS"""
+    print("🚀 Ręczne uruchomienie procesu wysyłania przypomnień")
+    
+    try:
+        result = await check_and_send_reminders()
+        return {
+            "success": True,
+            "message": "Proces wysyłania przypomnień zakończony",
+            "result": result
+        }
+    except Exception as e:
+        print(f"❌ Błąd podczas ręcznego wysyłania przypomnień: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Błąd podczas wysyłania przypomnień: {str(e)}")
+
+# Endpoint do sprawdzenia statusu schedulera
+@app.get("/reminders/status")
+async def get_reminders_status():
+    """Sprawdź status schedulera przypomnień"""
+    try:
+        jobs = scheduler.get_jobs()
+        job_info = []
+        
+        for job in jobs:
+            job_info.append({
+                "id": job.id,
+                "name": job.name,
+                "next_run": job.next_run_time.isoformat() if job.next_run_time else None,
+                "trigger": str(job.trigger)
+            })
+        
+        return {
+            "scheduler_running": scheduler.running,
+            "jobs": job_info
+        }
+    except Exception as e:
+        print(f"❌ Błąd podczas sprawdzania statusu schedulera: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd podczas sprawdzania statusu: {str(e)}")
 
 # Uruchomienie serwera
 if __name__ == "__main__":
