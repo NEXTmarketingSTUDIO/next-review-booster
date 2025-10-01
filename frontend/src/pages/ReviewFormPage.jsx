@@ -86,7 +86,23 @@ const ReviewFormPage = () => {
       
       if (formData.stars === 5 && clientInfo?.google_card) {
         console.log('🔗 Przekierowanie na Google Card:', clientInfo.google_card);
-        window.open(clientInfo.google_card, '_blank');
+        
+        // Sprawdź czy to urządzenie mobilne
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+          // Na telefonie użyj window.location.href zamiast window.open
+          console.log('📱 Wykryto urządzenie mobilne - używam window.location.href');
+          
+          // Dodaj małe opóźnienie aby upewnić się, że formularz został zapisany
+          setTimeout(() => {
+            window.location.href = clientInfo.google_card;
+          }, 1000);
+        } else {
+          // Na desktopie użyj window.open
+          console.log('💻 Wykryto desktop - używam window.open');
+          window.open(clientInfo.google_card, '_blank');
+        }
       } else if (formData.stars === 5) {
         console.log('⚠️ Brak Google Card URL w ustawieniach');
         console.log('🔍 clientInfo:', clientInfo);
@@ -147,10 +163,30 @@ const ReviewFormPage = () => {
       <div className="review-form-page">
         <div className="container">
           <div className="success-state">
-            <div className="success-icon">TODO</div>
+            <div className="success-icon">✅</div>
             <h2>Dziękujemy!</h2>
             <p>Twoja opinia została pomyślnie zapisana.</p>
             <p>Bardzo cenimy sobie Twoje uwagi!</p>
+            
+            {/* Pokaż przycisk do Google Card jeśli to 5 gwiazdek i jest URL */}
+            {formData.stars === 5 && clientInfo?.google_card && (
+              <div className="google-card-section">
+                <div className="google-card-content">
+                  <h4>🎯 Zostaw oficjalną recenzję na Google</h4>
+                  <p>Kliknij poniżej, aby przejść do naszej wizytówki Google i zostawić oficjalną recenzję, która będzie widoczna dla innych klientów.</p>
+                  <a 
+                    href={clientInfo.google_card} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="google-card-link"
+                  >
+                    <span className="google-icon">🔗</span>
+                    Przejdź do Google
+                    <span className="external-icon">↗</span>
+                  </a>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

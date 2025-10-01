@@ -111,10 +111,6 @@ const QRCodePage = () => {
   return (
     <div className="qr-page">
       <div className="container">
-        <div className="qr-header">
-          <h1>Generatory kodów QR</h1>
-          <p>Wygeneruj kody QR z linkami do wystawiania opinii</p>
-        </div>
 
         {/* Panel główny - ustawienia i kod QR obok siebie */}
         <div className="qr-main-content">
@@ -153,17 +149,6 @@ const QRCodePage = () => {
             <div className="qr-display">
               <div className="qr-display-header">
                 <h3>Wygenerowany kod QR</h3>
-                <div className="qr-actions">
-                  <button className="btn btn-secondary" onClick={printQRCodes}>
-                    🖨️ Drukuj
-                  </button>
-                  <button 
-                    className="btn btn-secondary"
-                    onClick={() => setQrCodes([])}
-                  >
-                    ✕ Zamknij
-                  </button>
-                </div>
               </div>
               
               <div className="qr-preview">

@@ -147,10 +147,6 @@ Z poważaniem,
   return (
     <div className="settings-page">
       <div className="container">
-        <div className="settings-header">
-          <h1>Ustawienia</h1>
-          <p>Zarządzaj swoimi danymi i preferencjami</p>
-        </div>
 
         <form onSubmit={handleSave} className="settings-form">
           {/* Dane użytkownika */}
@@ -277,56 +273,6 @@ Z poważaniem,
               </label>
               <small className="help-text">
                 Automatycznie wysyłaj SMS-y z przypomnieniami o opiniach
-              </small>
-            </div>
-          </div>
-
-          {/* Konfiguracja Twilio */}
-          <div className="settings-section">
-            <div className="section-header">
-              <h2>📱 Konfiguracja SMS (Twilio)</h2>
-              <p>Skonfiguruj Twilio do wysyłania SMS-ów</p>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="twilioAccountSid">Account SID</label>
-              <input
-                type="text"
-                id="twilioAccountSid"
-                value={settings.twilio.account_sid}
-                onChange={(e) => handleInputChange('twilio', 'account_sid', e.target.value)}
-                placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-              />
-              <small className="help-text">
-                Account SID z Twilio Console
-              </small>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="twilioAuthToken">Auth Token</label>
-              <input
-                type="password"
-                id="twilioAuthToken"
-                value={settings.twilio.auth_token}
-                onChange={(e) => handleInputChange('twilio', 'auth_token', e.target.value)}
-                placeholder="Twój auth token"
-              />
-              <small className="help-text">
-                Auth Token z Twilio Console (będzie zaszyfrowany)
-              </small>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="twilioPhoneNumber">Numer telefonu</label>
-              <input
-                type="tel"
-                id="twilioPhoneNumber"
-                value={settings.twilio.phone_number}
-                onChange={(e) => handleInputChange('twilio', 'phone_number', e.target.value)}
-                placeholder="+1234567890"
-              />
-              <small className="help-text">
-                Numer telefonu Twilio (format: +1234567890)
               </small>
             </div>
           </div>

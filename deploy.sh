@@ -69,7 +69,7 @@ if [ $? -eq 0 ]; then
     echo ""
     echo -e "${GREEN}🎉 Deployment zakończony pomyślnie!${NC}"
     echo -e "${BLUE}📱 Aplikacja dostępna pod adresem:${NC}"
-    echo -e "${YELLOW}https://next-reviews-9d19c.web.app${NC}"
+    echo -e "${YELLOW}https://next-reviews-booster-app.web.app${NC}"
     echo ""
     echo -e "${BLUE}💡 Przydatne linki:${NC}"
     echo -e "   • Firebase Console: https://console.firebase.google.com/project/next-reviews-9d19c"
