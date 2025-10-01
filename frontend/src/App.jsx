@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { apiService } from './services/api';
 import useAuth from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import UserNav from './components/UserNav';
+import Dashboard from './components/Dashboard';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ClientsPage from './pages/ClientsPage';
@@ -28,7 +29,7 @@ function AppContent() {
   const location = useLocation();
 
   // Strony bez nawigacji
-  const noNavRoutes = ['/client-login', '/review'];
+  const noNavRoutes = ['/client-login', '/review', '/dashboard'];
   const shouldShowNav = !noNavRoutes.some(route => location.pathname.startsWith(route));
 
   useEffect(() => {
@@ -70,7 +71,7 @@ function AppContent() {
               <div className="nav-links">
                 <Link to="/">Strona główna</Link>
                 {user ? (
-                  <Link to="/clients">Klienci</Link>
+                  <Link to="/dashboard">Dashboard</Link>
                 ) : (
                   <>
                     <a href="#cennik">Cennik</a>
@@ -238,6 +239,185 @@ function AppContent() {
                 </div>
               </section>
 
+              {/* Google Reviews Benefits Section */}
+              <section className="google-benefits">
+                <div className="container">
+                  <div className="section-header">
+                    <h2>Dlaczego opinie Google są kluczowe dla Twojej firmy?</h2>
+                    <p>Odkryj jak pozytywne recenzje na Google mogą przekształcić Twoją firmę</p>
+                  </div>
+                  
+                  <div className="google-benefits-grid">
+                    <div className="benefit-card">
+                      <div className="benefit-icon">🔍</div>
+                      <h3>Widoczność w wyszukiwarkach</h3>
+                      <p>Firmy z wyższymi ocenami Google pojawiają się wyżej w wynikach wyszukiwania. Każda dodatkowa gwiazdka to więcej klientów, którzy Cię znajdą.</p>
+                      <div className="benefit-stat">+67% więcej ruchu z Google</div>
+                    </div>
+                    
+                    <div className="benefit-card">
+                      <div className="benefit-icon">💰</div>
+                      <h3>Zwiększona sprzedaż</h3>
+                      <p>Klienci ufają opiniom innych klientów. Każda pozytywna recenzja to potencjalny nowy klient, który wybierze Cię zamiast konkurencji.</p>
+                      <div className="benefit-stat">+31% wzrost konwersji</div>
+                    </div>
+                    
+                    <div className="benefit-card">
+                      <div className="benefit-icon">🏆</div>
+                      <h3>Przewaga nad konkurencją</h3>
+                      <p>Wysokie oceny Google to Twój najsilniejszy argument w walce o klientów. Pokazujesz, że jesteś lepszy od konkurencji.</p>
+                      <div className="benefit-stat">+45% więcej zapytań</div>
+                    </div>
+                    
+                    <div className="benefit-card">
+                      <div className="benefit-icon">📱</div>
+                      <h3>Zaufanie mobilnych użytkowników</h3>
+                      <p>90% klientów czyta opinie przed wizytą. Na telefonie opinie Google są pierwszym, co widzą potencjalni klienci.</p>
+                      <div className="benefit-stat">90% klientów czyta opinie</div>
+                    </div>
+                    
+                    <div className="benefit-card">
+                      <div className="benefit-icon">🎯</div>
+                      <h3>Lepsze pozycjonowanie lokalne</h3>
+                      <p>Google faworyzuje firmy z dobrymi opiniami w wyszukiwaniach lokalnych. "Salon fryzjerski w Warszawie" - Twoja firma będzie na górze.</p>
+                      <div className="benefit-stat">+78% więcej lokalnych klientów</div>
+                    </div>
+                    
+                    <div className="benefit-card">
+                      <div className="benefit-icon">🔄</div>
+                      <h3>Długoterminowy wzrost</h3>
+                      <p>Pozytywne opinie to inwestycja w przyszłość. Każda recenzja buduje Twoją reputację na lata, przyciągając nowych klientów.</p>
+                      <div className="benefit-stat">+156% wzrost w ciągu roku</div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Platform Benefits Section */}
+              <section className="platform-benefits">
+                <div className="container">
+                  <div className="section-header">
+                    <h2>Co otrzymasz z NEXT reviews BOOSTER?</h2>
+                    <p>Kompletne rozwiązanie do zarządzania reputacją Twojej firmy</p>
+                  </div>
+                  
+                  <div className="platform-benefits-content">
+                    <div className="benefits-column">
+                      <div className="benefit-item-large">
+                        <div className="benefit-icon-large">🚀</div>
+                        <div className="benefit-content-large">
+                          <h3>Automatyzacja zbierania opinii</h3>
+                          <p>Nie musisz już pamiętać o proszeniu klientów o opinie. System automatycznie wysyła SMS-y z przypomnieniami, zwiększając liczbę recenzji o 300%.</p>
+                          <ul className="benefit-features">
+                            <li>✅ Automatyczne SMS-y z linkami do opinii</li>
+                            <li>✅ Inteligentne przypomnienia co 1-30 dni</li>
+                            <li>✅ Personalizowane wiadomości dla każdego klienta</li>
+                            <li>✅ Integracja z Twilio - profesjonalne SMS-y</li>
+                          </ul>
+                        </div>
+                      </div>
+                      
+                      <div className="benefit-item-large">
+                        <div className="benefit-icon-large">🛡️</div>
+                        <div className="benefit-content-large">
+                          <h3>Ochrona przed negatywnymi opiniami</h3>
+                          <p>Negatywne recenzje nie trafiają na Google, ale Ty otrzymujesz cenną informację zwrotną, aby poprawić jakość usług i zadowolić klientów.</p>
+                          <ul className="benefit-features">
+                            <li>✅ Filtrowanie negatywnych opinii (1-3 gwiazdki)</li>
+                            <li>✅ Prywatne powiadomienia o problemach</li>
+                            <li>✅ Możliwość kontaktu z niezadowolonymi klientami</li>
+                            <li>✅ Ochrona reputacji online</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="benefits-column">
+                      <div className="benefit-item-large">
+                        <div className="benefit-icon-large">📊</div>
+                        <div className="benefit-content-large">
+                          <h3>Profesjonalne zarządzanie klientami</h3>
+                          <p>Zarządzaj bazą klientów, śledź ich opinie i buduj długoterminowe relacje. Każdy klient to potencjalna pozytywna recenzja.</p>
+                          <ul className="benefit-features">
+                            <li>✅ Kompletna baza danych klientów</li>
+                            <li>✅ Historia wszystkich opinii i interakcji</li>
+                            <li>✅ Status każdej recenzji (wysłana/otwarta/ukończona)</li>
+                            <li>✅ Notatki i dodatkowe informacje o klientach</li>
+                          </ul>
+                        </div>
+                      </div>
+                      
+                      <div className="benefit-item-large">
+                        <div className="benefit-icon-large">🔗</div>
+                        <div className="benefit-content-large">
+                          <h3>Kody QR i integracja z Google</h3>
+                          <p>Profesjonalne kody QR prowadzą klientów bezpośrednio do formularza opinii, a pozytywne recenzje automatycznie trafiają na Google.</p>
+                          <ul className="benefit-features">
+                            <li>✅ Kody QR do druku w salonie/sklepie</li>
+                            <li>✅ Automatyczne przekierowanie na Google dla 5 gwiazdek</li>
+                            <li>✅ Personalizowane linki dla każdego klienta</li>
+                            <li>✅ Łatwa integracja z wizytówką Google</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* ROI Section */}
+              <section className="roi-section">
+                <div className="container">
+                  <div className="roi-content">
+                    <div className="roi-text">
+                      <h2>Zwrot z inwestycji już w pierwszym miesiącu</h2>
+                      <p>NEXT reviews BOOSTER to nie koszt, to inwestycja, która się zwraca. Oto jak Twoja firma skorzysta:</p>
+                      
+                      <div className="roi-stats">
+                        <div className="roi-stat">
+                          <div className="roi-number">+300%</div>
+                          <div className="roi-label">Więcej pozytywnych opinii</div>
+                        </div>
+                        <div className="roi-stat">
+                          <div className="roi-number">+67%</div>
+                          <div className="roi-label">Więcej ruchu z Google</div>
+                        </div>
+                        <div className="roi-stat">
+                          <div className="roi-number">+31%</div>
+                          <div className="roi-label">Wzrost konwersji</div>
+                        </div>
+                        <div className="roi-stat">
+                          <div className="roi-number">-90%</div>
+                          <div className="roi-label">Negatywnych opinii na Google</div>
+                        </div>
+                      </div>
+                      
+                      <div className="roi-example">
+                        <h4>Przykład: Salon fryzjerski</h4>
+                        <p>Koszt platformy: 99 zł/miesiąc</p>
+                        <p>Dodatkowi klienci dzięki lepszym opiniom: 15/miesiąc</p>
+                        <p>Średnia wartość klienta: 80 zł</p>
+                        <p><strong>Dodatkowy przychód: 1,200 zł/miesiąc</strong></p>
+                        <p><strong>ROI: 1,200% w pierwszym miesiącu!</strong></p>
+                      </div>
+                    </div>
+                    
+                    <div className="roi-visual">
+                      <div className="roi-chart">
+                        <div className="chart-bar" style={{height: '100%'}}>
+                          <div className="bar-label">Z NEXT reviews BOOSTER</div>
+                          <div className="bar-value">1,200 zł</div>
+                        </div>
+                        <div className="chart-bar" style={{height: '30%'}}>
+                          <div className="bar-label">Bez platformy</div>
+                          <div className="bar-value">360 zł</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
               {/* CTA Section */}
               <section className="cta-section">
                 <div className="container">
@@ -367,15 +547,7 @@ function AppContent() {
                           <div className="contact-icon">📱</div>
                           <div className="contact-details">
                             <h4>Telefon</h4>
-                            <p>+48 123 456 789</p>
-                          </div>
-                        </div>
-                        
-                        <div className="contact-method">
-                          <div className="contact-icon">💬</div>
-                          <div className="contact-details">
-                            <h4>Chat online</h4>
-                            <p>Dostępny 24/7</p>
+                            <p>+48 730 004 440</p>
                           </div>
                         </div>
                       </div>
@@ -426,24 +598,20 @@ function AppContent() {
           
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/clients" element={
+          
+          {/* Dashboard Routes */}
+          <Route path="/dashboard" element={
             <ProtectedRoute>
-              <ClientsPage />
+              <Navigate to="/dashboard/statistics" replace />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard/*" element={
+            <ProtectedRoute>
+              <Dashboard />
             </ProtectedRoute>
           } />
           
-          <Route path="/settings" element={
-            <ProtectedRoute>
-              <SettingsPage />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/qrcodes" element={
-            <ProtectedRoute>
-              <QRCodePage />
-            </ProtectedRoute>
-          } />
-          
+          {/* Public Routes */}
           <Route path="/client-login/:username" element={<ClientLoginPage />} />
           <Route path="/review/:reviewCode" element={<ReviewFormPage />} />
           <Route path="/polityka-prywatnosci" element={<PrivacyPolicyPage />} />

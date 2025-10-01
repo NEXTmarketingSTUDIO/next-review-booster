@@ -815,6 +815,249 @@ html {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
+/* Google Benefits Section */
+.google-benefits {
+  padding: 6rem 0;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.google-benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.benefit-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 1px solid #e9ecef;
+}
+
+.benefit-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.benefit-card .benefit-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.benefit-card h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+}
+
+.benefit-card p {
+  color: var(--text-nav);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.benefit-stat {
+  background: linear-gradient(135deg, #fca212, #ff8c00);
+  color: white;
+  padding: 0.8rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-align: center;
+  display: inline-block;
+  width: 100%;
+}
+
+/* Platform Benefits Section */
+.platform-benefits {
+  padding: 6rem 0;
+  background: white;
+}
+
+.platform-benefits-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  margin-top: 3rem;
+}
+
+.benefit-item-large {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+  padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 16px;
+  border-left: 4px solid #fca212;
+  transition: all 0.3s ease;
+}
+
+.benefit-item-large:hover {
+  transform: translateX(8px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+}
+
+.benefit-icon-large {
+  font-size: 3.5rem;
+  flex-shrink: 0;
+  margin-top: 0.5rem;
+}
+
+.benefit-content-large h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+}
+
+.benefit-content-large p {
+  color: var(--text-nav);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.benefit-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.benefit-features li {
+  padding: 0.5rem 0;
+  color: var(--text-nav);
+  font-size: 0.95rem;
+}
+
+/* ROI Section */
+.roi-section {
+  padding: 6rem 0;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  color: white;
+}
+
+.roi-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+.roi-text h2 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  color: white;
+}
+
+.roi-text p {
+  font-size: 1.2rem;
+  color: #e0e0e0;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.roi-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.roi-stat {
+  text-align: center;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.roi-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #fca212;
+  margin-bottom: 0.5rem;
+}
+
+.roi-label {
+  font-size: 0.9rem;
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.roi-example {
+  background: rgba(252, 162, 18, 0.1);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid rgba(252, 162, 18, 0.3);
+}
+
+.roi-example h4 {
+  color: #fca212;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.roi-example p {
+  margin: 0.5rem 0;
+  color: #e0e0e0;
+}
+
+.roi-example strong {
+  color: #fca212;
+  font-size: 1.1rem;
+}
+
+.roi-visual {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.roi-chart {
+  display: flex;
+  align-items: end;
+  gap: 2rem;
+  height: 300px;
+}
+
+.chart-bar {
+  width: 120px;
+  background: linear-gradient(to top, #fca212, #ff8c00);
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1rem;
+  position: relative;
+  box-shadow: 0 8px 20px rgba(252, 162, 18, 0.3);
+}
+
+.chart-bar:first-child {
+  background: linear-gradient(to top, #4CAF50, #45a049);
+  box-shadow: 0 8px 20px rgba(76, 175, 80, 0.3);
+}
+
+.bar-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: white;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.bar-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: white;
+  text-align: center;
+}
+
 /* Responsywność */
 @media (max-width: 768px) {
   .nav-content {
@@ -979,5 +1222,64 @@ html {
   
   .footer-copyright {
     font-size: 0.8rem;
+  }
+  
+  /* New sections responsive */
+  .google-benefits {
+    padding: 4rem 0;
+  }
+  
+  .google-benefits-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .platform-benefits {
+    padding: 4rem 0;
+  }
+  
+  .platform-benefits-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .benefit-item-large {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+    padding: 1.5rem;
+  }
+  
+  .roi-section {
+    padding: 4rem 0;
+  }
+  
+  .roi-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    text-align: center;
+  }
+  
+  .roi-text h2 {
+    font-size: 2rem;
+  }
+  
+  .roi-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  
+  .roi-chart {
+    flex-direction: column;
+    height: auto;
+    gap: 1rem;
+  }
+  
+  .chart-bar {
+    width: 100%;
+    height: 80px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
   }
 }

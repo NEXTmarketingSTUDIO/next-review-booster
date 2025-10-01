@@ -172,10 +172,6 @@ const ClientsPage = () => {
   return (
     <div className="clients-page">
       <div className="container">
-        <div className="clients-header">
-          <h1>Klienci</h1>
-          <p>Zarządzaj swoją bazą klientów</p>
-        </div>
 
         {/* Formularz dodawania/edycji klienta */}
         {showForm && (

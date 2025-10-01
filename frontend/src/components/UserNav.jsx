@@ -85,11 +85,11 @@ const UserNav = () => {
           </div>
 
           <div className="dropdown-actions">
-            <button className="dropdown-item" onClick={() => window.location.href = '/qrcodes'}>
+            <button className="dropdown-item" onClick={() => window.location.href = '/dashboard/qrcodes'}>
               <span className="icon">📱</span>
               Kod QR
             </button>
-            <button className="dropdown-item" onClick={() => window.location.href = '/settings'}>
+            <button className="dropdown-item" onClick={() => window.location.href = '/dashboard/settings'}>
               <span className="icon">⚙️</span>
               Ustawienia
             </button>
