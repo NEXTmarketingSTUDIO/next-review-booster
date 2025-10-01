@@ -38,6 +38,8 @@ services:
         fromService:
           type: secret
           name: firebase-client-x509-cert-url
+      - key: FRONTEND_URL
+        value: https://next-reviews-booster.com
     healthCheckPath: /health
     autoDeploy: true
     branch: master

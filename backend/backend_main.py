@@ -83,7 +83,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000", 
-        "https://next-reviews-9d19c.web.app",
+        "https://next-reviews-9d19c.web.app",  # Stara domena Firebase (backup)
+        "https://next-reviews-booster.com",  # Nowa docelowa domena
+        "https://www.next-reviews-booster.com",  # Wariant z www
         "https://next-reviews-frontend.onrender.com",  # Frontend na Render
         "https://*.onrender.com"  # Wszystkie domeny Render
     ],
@@ -460,7 +462,7 @@ Z poważaniem,
                     if should_send:
                         try:
                             # Przygotuj URL do recenzji
-                            base_url = os.getenv("FRONTEND_URL", "https://next-reviews-9d19c.web.app")
+                            base_url = os.getenv("FRONTEND_URL", "https://next-reviews-booster.com")
                             review_url = f"{base_url}/review/{review_code}"
                             
                             # Przygotuj wiadomość
@@ -1119,7 +1121,7 @@ async def generate_company_qr_code(username: str, request: QRCodeRequest):
             print(f"⚠️ Nie można pobrać nazwy firmy: {e}")
         
         # Generuj URL do formularza logowania klienta
-        base_url = os.getenv("FRONTEND_URL", "https://next-reviews-9d19c.web.app")
+        base_url = os.getenv("FRONTEND_URL", "https://next-reviews-booster.com")
         client_login_url = f"{base_url}/client-login/{username}"
         
         # Generuj kod QR z lepszą konfiguracją
@@ -1160,7 +1162,7 @@ async def get_qr_code_image(review_code: str, size: int = 200):
         
         # Generuj URL do formularza recenzji
         # Użyj zmiennej środowiskowej lub domyślnego localhost
-        base_url = os.getenv("FRONTEND_URL", "https://next-reviews-9d19c.web.app")
+        base_url = os.getenv("FRONTEND_URL", "https://next-reviews-booster.com")
         review_url = f"{base_url}/review/{review_code}"
         
         # Generuj kod QR z lepszą konfiguracją
@@ -1285,7 +1287,7 @@ Z poważaniem,
                 company_name = settings_data["userData"]["companyName"]
         
         # Generuj URL do formularza recenzji
-        base_url = os.getenv("FRONTEND_URL", "https://next-reviews-9d19c.web.app")
+        base_url = os.getenv("FRONTEND_URL", "https://next-reviews-booster.com")
         review_url = f"{base_url}/review/{review_code}"
         
         # Przygotuj wiadomość SMS
