@@ -900,6 +900,7 @@ async def get_review_form(review_code: str):
         temp_docs = temp_clients_ref.where("review_code", "==", review_code).stream()
         
         found_client = None
+        found_collection = None
         is_temp_client = False
         
         for doc in temp_docs:
@@ -923,6 +924,7 @@ async def get_review_form(review_code: str):
                 for doc in docs:
                     found_client = doc.to_dict()
                     found_client["id"] = doc.id
+                    found_collection = collection_name
                     break
                 
                 if found_client:
@@ -961,55 +963,107 @@ async def get_review_form(review_code: str):
             google_card = ""
             try:
                 print(f"🔍 Szukanie ustawień dla kodu: {review_code}")
-                collections = db.collections()
-                for collection in collections:
-                    collection_name = collection.id
-                    print(f"🔍 Sprawdzanie kolekcji: {collection_name}")
-                    if collection_name in ["Dane", "temp_clients"]:
-                        continue
-                    docs = collection.where("review_code", "==", review_code).stream()
-                    if docs:
-                        print(f"✅ Znaleziono klienta w kolekcji: {collection_name}")
+                print(f"🔍 Znaleziony klient: {found_client}")
+                print(f"🔍 Czy to temp_client: {is_temp_client}")
+                print(f"🔍 Kolekcja klienta: {found_collection}")
+                
+                # Jeśli klient jest w temp_clients, musimy znaleźć właściciela
+                if is_temp_client:
+                    print("🔍 Klient jest w temp_clients - szukam właściciela")
+                    # Sprawdź wszystkie kolekcje użytkowników
+                    collections = db.collections()
+                    for collection in collections:
+                        collection_name = collection.id
+                        if collection_name in ["Dane", "temp_clients"]:
+                            continue
+                        print(f"🔍 Sprawdzanie kolekcji użytkownika: {collection_name}")
                         settings_doc = db.collection(collection_name).document("Dane").get()
                         if settings_doc.exists:
                             settings_data = settings_doc.to_dict()
-                            print(f"📋 Dane ustawień: {settings_data}")
+                            print(f"📋 Dane ustawień z kolekcji {collection_name}: {settings_data}")
                             if "userData" in settings_data:
                                 user_data = settings_data["userData"]
-                                print(f"👤 Dane użytkownika: {user_data}")
+                                print(f"👤 Dane użytkownika z kolekcji {collection_name}: {user_data}")
                                 
                                 # Sprawdź czy userData ma zagnieżdżoną strukturę userData
                                 if "userData" in user_data:
                                     nested_user_data = user_data["userData"]
-                                    print(f"👤 Zagnieżdżone dane użytkownika: {nested_user_data}")
+                                    print(f"👤 Zagnieżdżone dane użytkownika z kolekcji {collection_name}: {nested_user_data}")
                                     if "companyName" in nested_user_data:
                                         company_name = nested_user_data["companyName"]
-                                        print(f"🏢 Nazwa firmy: {company_name}")
+                                        print(f"🏢 Nazwa firmy z kolekcji {collection_name}: {company_name}")
                                     if "googleCard" in nested_user_data:
                                         google_card = nested_user_data["googleCard"]
-                                        print(f"🔗 Google Card: {google_card}")
+                                        print(f"🔗 Google Card (zagnieżdżone) z kolekcji {collection_name}: {google_card}")
+                                        print(f"🔗 Google Card type: {type(google_card)}")
+                                        print(f"🔗 Google Card length: {len(google_card) if google_card else 0}")
+                                        break  # Znaleziono ustawienia, przerwij pętlę
                                 else:
                                     # Sprawdź bezpośrednio w userData
                                     if "companyName" in user_data:
                                         company_name = user_data["companyName"]
-                                        print(f"🏢 Nazwa firmy: {company_name}")
+                                        print(f"🏢 Nazwa firmy z kolekcji {collection_name}: {company_name}")
                                     if "googleCard" in user_data:
                                         google_card = user_data["googleCard"]
-                                        print(f"🔗 Google Card: {google_card}")
+                                        print(f"🔗 Google Card (bezpośrednie) z kolekcji {collection_name}: {google_card}")
+                                        print(f"🔗 Google Card type: {type(google_card)}")
+                                        print(f"🔗 Google Card length: {len(google_card) if google_card else 0}")
+                                        break  # Znaleziono ustawienia, przerwij pętlę
+                else:
+                    # Klient jest w kolekcji użytkownika
+                    print(f"🔍 Klient jest w kolekcji użytkownika: {found_collection}")
+                    settings_doc = db.collection(found_collection).document("Dane").get()
+                    if settings_doc.exists:
+                        settings_data = settings_doc.to_dict()
+                        print(f"📋 Dane ustawień z kolekcji {found_collection}: {settings_data}")
+                        if "userData" in settings_data:
+                            user_data = settings_data["userData"]
+                            print(f"👤 Dane użytkownika z kolekcji {found_collection}: {user_data}")
+                            
+                            # Sprawdź czy userData ma zagnieżdżoną strukturę userData
+                            if "userData" in user_data:
+                                nested_user_data = user_data["userData"]
+                                print(f"👤 Zagnieżdżone dane użytkownika z kolekcji {found_collection}: {nested_user_data}")
+                                if "companyName" in nested_user_data:
+                                    company_name = nested_user_data["companyName"]
+                                    print(f"🏢 Nazwa firmy z kolekcji {found_collection}: {company_name}")
+                                if "googleCard" in nested_user_data:
+                                    google_card = nested_user_data["googleCard"]
+                                    print(f"🔗 Google Card (zagnieżdżone) z kolekcji {found_collection}: {google_card}")
+                                    print(f"🔗 Google Card type: {type(google_card)}")
+                                    print(f"🔗 Google Card length: {len(google_card) if google_card else 0}")
                             else:
-                                print("⚠️ Brak userData w ustawieniach")
+                                # Sprawdź bezpośrednio w userData
+                                if "companyName" in user_data:
+                                    company_name = user_data["companyName"]
+                                    print(f"🏢 Nazwa firmy z kolekcji {found_collection}: {company_name}")
+                                if "googleCard" in user_data:
+                                    google_card = user_data["googleCard"]
+                                    print(f"🔗 Google Card (bezpośrednie) z kolekcji {found_collection}: {google_card}")
+                                    print(f"🔗 Google Card type: {type(google_card)}")
+                                    print(f"🔗 Google Card length: {len(google_card) if google_card else 0}")
                         else:
-                            print(f"⚠️ Dokument 'Dane' nie istnieje w kolekcji {collection_name}")
-                        break
+                            print("⚠️ Brak userData w ustawieniach")
+                    else:
+                        print(f"⚠️ Dokument 'Dane' nie istnieje w kolekcji {found_collection}")
             except Exception as e:
                 print(f"⚠️ Nie można pobrać ustawień firmy: {e}")
             
-            return {
+            result = {
                 "review_code": review_code,
                 "client_name": found_client['name'],
                 "company_name": company_name,
                 "google_card": google_card
             }
+            
+            print(f"🔍 DEBUG - Zwracane dane:")
+            print(f"🔍 - review_code: {result['review_code']}")
+            print(f"🔍 - client_name: {result['client_name']}")
+            print(f"🔍 - company_name: {result['company_name']}")
+            print(f"🔍 - google_card: {result['google_card']}")
+            print(f"🔍 - google_card type: {type(result['google_card'])}")
+            
+            return result
         else:
             print(f"❌ Nie znaleziono klienta z kodem: {review_code}")
             raise HTTPException(status_code=404, detail="Kod recenzji nie został znaleziony")
