@@ -284,7 +284,7 @@ function AppContent() {
 
 
                       <p className="hero-subtitle">
-                      NEXT reviews BOOSTER to platforma, która <b>robi za Ciebie całą robotę z opiniami</b>. Wyobraź sobie asystenta, który automatycznie <b>zbiera pozytywne recenzje</b> od zadowolonych klientów, a te <b>złe zostawia tylko dla Ciebie</b>, tak abyś mógł szybko i sprawnie zareagować <b>aby ugasić potencjalny pożar</b>.
+                      NEXT reviews BOOSTER to platforma, która <b>robi za Ciebie całą robotę z opiniami</b>. Wyobraź sobie asystenta, który automatycznie <b>zbiera pozytywne recenzje</b> od zadowolonych klientów, a te <b>złe zostawia tylko dla Ciebie</b>, tak abyś mógł szybko i sprawnie zareagować <b>gasząc potencjalny pożar</b>.
                       </p>
                       
                       <div className="hero-buttons">
@@ -322,8 +322,8 @@ function AppContent() {
                             <div className="stat-label">Średnia ocena</div>
                             <div className="stat-description">Twoja przewaga nad konkurencją</div>
                           </div>
-                        </div>
-                        
+                  </div>
+                  
                         <div className="advantage-stat">
                           <div className="stat-icon">
                             <i data-feather="trending-up"></i>
@@ -333,8 +333,8 @@ function AppContent() {
                             <div className="stat-label">Więcej klientów</div>
                             <div className="stat-description">Firmy z 5.0 mają więcej zapytań</div>
                           </div>
-                        </div>
-                        
+                    </div>
+                    
                         <div className="advantage-stat">
                           <div className="stat-icon">
                             <i data-feather="dollar-sign"></i>
@@ -345,8 +345,8 @@ function AppContent() {
                             <div className="stat-description">Możesz żądać więcej za usługi</div>
                           </div>
                         </div>
-                      </div>
-                      
+                    </div>
+                    
                       <div className="advantage-proof">
                         <h3>Dlaczego reputacja to wszystko?</h3>
                         <div className="proof-points">
@@ -359,20 +359,18 @@ function AppContent() {
                               <p>Firmy z wyższymi ocenami pojawiają się wyżej w wynikach wyszukiwania</p>
                             </div>
                           </div>
-                          
                           <div className="proof-point">
                             <div className="proof-icon">
-                              <i data-feather="users"></i>
+                              <i data-feather="search"></i>
                             </div>
                             <div className="proof-text">
                               <h4>Klienci wybierają 5.0</h4>
                               <p>93% klientów czyta opinie przed wyborem usługodawcy</p>
                             </div>
                           </div>
-                          
                           <div className="proof-point">
                             <div className="proof-icon">
-                              <i data-feather="shield"></i>
+                              <i data-feather="search"></i>
                             </div>
                             <div className="proof-text">
                               <h4>Ochrona przed kryzysem</h4>
@@ -382,12 +380,12 @@ function AppContent() {
                         </div>
                       </div>
                     </div>
-                    
+                        
                     <div className="advantage-visual">
                       <div className="rating-comparison">
                         <div className="comparison-header">
                           <h3>Twoja konkurencja vs Ty</h3>
-                        </div>
+                          </div>
                         
                         <div className="competitor-rating">
                           <div className="rating-label">Konkurencja</div>
@@ -404,7 +402,7 @@ function AppContent() {
                         
                         <div className="vs-divider">
                           <span>VS</span>
-                        </div>
+                          </div>
                         
                         <div className="your-rating">
                           <div className="rating-label">Ty z NEXT reviews BOOSTER</div>
@@ -421,10 +419,10 @@ function AppContent() {
                         
                         <div className="advantage-result">
                           <div className="result-text">Twoja przewaga: <strong>+19% więcej klientów</strong></div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
                 </div>
               </section>
 
@@ -491,7 +489,7 @@ function AppContent() {
                         <div className="stat-item">
                           <div className="stat-icon">
                             <i data-feather="users"></i>
-                          </div>
+                        </div>
                           <div className="stat-content">
                             <div className="stat-number">87%</div>
                             <div className="stat-label">Klientów wybiera 5.0</div>
@@ -502,7 +500,7 @@ function AppContent() {
                         <div className="stat-item">
                           <div className="stat-icon">
                             <i data-feather="dollar-sign"></i>
-                          </div>
+                        </div>
                           <div className="stat-content">
                             <div className="stat-number">+23%</div>
                             <div className="stat-label">Wyższe ceny</div>
@@ -540,7 +538,7 @@ function AppContent() {
                         <i data-feather="message-circle"></i>
                       </div>
                       <h3>Automatyczne SMS-y</h3>
-                      <p>System sam wysyła SMS-y do klientów z prośbą o opinię. <strong>Nie musisz o niczym pamiętać</strong> - wszystko dzieje się automatycznie!</p>
+                      <p>System sam wysyła SMS-y do klientów z prośbą o opinię. <strong>Nie musisz o niczym pamiętać</strong> - wszystko dzieje się automatycznie! Sam ustalasz częstotliwość wysyłki SMS</p>
                     </div>
                     
                     <div className="feature-card">
@@ -735,7 +733,7 @@ function AppContent() {
                           <h3>Ochrona przed negatywnymi opiniami</h3>
                           <p>Negatywne recenzje nie trafiają na Google, ale Ty otrzymujesz cenną informację zwrotną, aby poprawić jakość usług i zadowolić klientów.</p>
                           <ul className="benefit-features">
-                            <li>⭐ Filtrowanie negatywnych opinii (1-3 gwiazdki)</li>
+                            <li>⭐ Filtrowanie negatywnych opinii (1-4 gwiazdki)</li>
                             <li>⭐ Prywatne powiadomienia o problemach</li>
                             <li>⭐ Możliwość kontaktu z niezadowolonymi klientami</li>
                             <li>⭐ Ochrona reputacji online</li>
@@ -831,7 +829,7 @@ function AppContent() {
                             <div className="legend-item">
                               <div className="legend-color red"></div>
                               <span>Bez NEXT reviews BOOSTER: 199 zł</span>
-                            </div>
+                        </div>
                             <div className="legend-item">
                               <div className="legend-color green"></div>
                               <span>Z NEXT reviews BOOSTER: 960 zł</span>
@@ -876,16 +874,16 @@ function AppContent() {
               <section className="cta-section">
                 <div className="container">
                   <div className="cta-content">
-                    <h2>Nie oszukuj się. Możesz mieć najlepszy produkt, zespół i ofertę,<br /> ale jeśli nie świecisz ⭐⭐⭐⭐⭐ jesteś niewidzialny. <br />A niewidzialne firmy nie zarabiają.</h2>
-                    <p>Dołącz do firm, które już używają NEXT reviews BOOSTER do budowania swojej reputacji online</p>
+                    <h2><b>Nie oszukuj się.</b> Możesz mieć najlepszy produkt, zespół i ofertę,<br /> ale jeśli nie świecisz ⭐⭐⭐⭐⭐ jesteś niewidzialny. <br /><b>A niewidzialne firmy nie zarabiają.</b></h2>
+                    <p>Dołącz do firm, które już używają NEXT reviews BOOSTER i buduj mądrze swoją reputacje online</p>
                     <div className="hero-buttons">
-                        <Link to="/register" className="btn btn-primary btn-large">
+                      <Link to="/register" className="btn btn-primary btn-large">
                           Rozpocznij bezpłatny okres próbny
-                        </Link>
+                      </Link>
                         <button className="btn btn-secondary btn-large">
                           Zobacz demo
                         </button>
-                      </div>
+                    </div>
                   </div>
                 </div>
               </section>
