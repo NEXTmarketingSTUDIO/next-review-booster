@@ -7,7 +7,9 @@ const VisitsPage = () => {
 
       <div className="content-grid">
         <div className="content-card">
-          <div className="card-icon">📋</div>
+          <div className="card-icon">
+            <i data-feather="calendar"></i>
+          </div>
           <h3>Harmonogram wizyt</h3>
           <p>Przeglądaj i zarządzaj zaplanowanymi wizytami klientów</p>
           <div className="card-status">W przygotowaniu</div>
@@ -21,14 +23,18 @@ const VisitsPage = () => {
         </div>
 
         <div className="content-card">
-          <div className="card-icon">📊</div>
+          <div className="card-icon">
+            <i data-feather="bar-chart-2"></i>
+          </div>
           <h3>Statystyki wizyt</h3>
           <p>Analiza frekwencji i popularności terminów</p>
           <div className="card-status">W przygotowaniu</div>
         </div>
 
         <div className="content-card">
-          <div className="card-icon">🔔</div>
+          <div className="card-icon">
+            <i data-feather="bell"></i>
+          </div>
           <h3>Przypomnienia</h3>
           <p>Automatyczne powiadomienia o nadchodzących wizytach</p>
           <div className="card-status">W przygotowaniu</div>
@@ -36,7 +42,7 @@ const VisitsPage = () => {
       </div>
 
       <div className="coming-soon">
-        <h2>🚀 Funkcjonalność w przygotowaniu</h2>
+        <h2><i data-feather="zap"></i> Funkcjonalność w przygotowaniu</h2>
         <p>Ta sekcja będzie dostępna w najbliższej aktualizacji</p>
       </div>
     </div>

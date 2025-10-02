@@ -455,6 +455,10 @@
 
 /* Responsywność */
 @media (max-width: 768px) {
+  .clients-page {
+    padding: 1rem 0;
+  }
+  
   .clients-header h1 {
     font-size: 2rem;
   }
@@ -462,6 +466,7 @@
   .clients-table-container {
     margin: 0 0.5rem;
     overflow-x: auto;
+    border-radius: 10px;
   }
   
   .clients-table {
@@ -474,53 +479,23 @@
     font-size: 0.9rem;
   }
   
+  .client-form-overlay {
+    padding: 1rem;
+  }
+  
   .client-form {
-    margin: 1rem;
+    margin: 0;
     padding: 1.5rem;
+    max-width: 100%;
   }
   
   .form-actions {
     flex-direction: column;
+    gap: 0.8rem;
   }
   
   .form-actions .btn {
     width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  .clients-page {
-    padding: 1rem 0;
-  }
-  
-  .clients-header {
-    margin-bottom: 2rem;
-  }
-  
-  .clients-table-container {
-    margin: 0 0.25rem;
-    border-radius: 10px;
-  }
-  
-  .clients-table th,
-  .clients-table td {
-    padding: 0.6rem 0.3rem;
-    font-size: 0.8rem;
-  }
-  
-  .clients-table th {
-    font-size: 0.75rem;
-    padding: 0.8rem 0.3rem;
-  }
-  
-  .client-actions .btn-icon {
-    padding: 0.3rem;
-    font-size: 0.9rem;
-  }
-  
-  .expand-review-btn {
-    font-size: 0.7rem;
-    padding: 0.25rem 0.5rem;
   }
   
   .floating-add-btn {
@@ -529,5 +504,76 @@
     width: 55px;
     height: 55px;
     font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .clients-page {
+    padding: 0.5rem 0;
+  }
+  
+  .clients-header {
+    margin-bottom: 1.5rem;
+  }
+  
+  .clients-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .clients-table-container {
+    margin: 0 0.25rem;
+    border-radius: 8px;
+  }
+  
+  .clients-table {
+    min-width: 700px;
+  }
+  
+  .clients-table th,
+  .clients-table td {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.75rem;
+  }
+  
+  .clients-table th {
+    font-size: 0.7rem;
+    padding: 0.6rem 0.25rem;
+  }
+  
+  .client-actions .btn-icon {
+    padding: 0.25rem;
+    font-size: 0.8rem;
+    margin: 0 0.1rem;
+  }
+  
+  .expand-review-btn {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+  }
+  
+  .client-form-overlay {
+    padding: 0.5rem;
+  }
+  
+  .client-form {
+    padding: 1rem;
+  }
+  
+  .form-header h3 {
+    font-size: 1.2rem;
+  }
+  
+  .form-group input,
+  .form-group textarea {
+    padding: 0.6rem;
+    font-size: 0.9rem;
+  }
+  
+  .floating-add-btn {
+    bottom: 1rem;
+    right: 1rem;
+    width: 50px;
+    height: 50px;
+    font-size: 1.6rem;
   }
 }

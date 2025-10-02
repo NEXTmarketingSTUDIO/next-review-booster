@@ -10,31 +10,37 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 1rem;
-  background: rgba(255, 165, 0, 0.1);
+  background: linear-gradient(135deg, rgba(255, 165, 0, 0.1), rgba(255, 165, 0, 0.05));
   border: 1px solid rgba(255, 165, 0, 0.3);
   border-radius: 25px;
   cursor: pointer;
   transition: all 0.3s ease;
   min-width: 200px;
+  position: relative;
+  overflow: hidden;
 }
 
 .user-profile:hover {
-  background: rgba(255, 165, 0, 0.2);
+  background: linear-gradient(135deg, rgba(255, 165, 0, 0.2), rgba(255, 165, 0, 0.1));
   border-color: var(--logo-yellow-end);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 165, 0, 0.2);
 }
 
 .user-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #fca212;
-  color: var(--logo-black);
+  background: linear-gradient(135deg, #fca212, #ff8c00);
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 1.1rem;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(252, 162, 18, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .user-info {
@@ -81,10 +87,47 @@
   background: var(--background-light);
   border: 1px solid var(--border-light);
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-  min-width: 280px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  min-width: 300px;
   z-index: 1000;
   overflow: hidden;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+/* Data state animations */
+.user-dropdown[data-state="open"] {
+  animation: slideDown 0.3s ease-out;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.user-dropdown[data-state="closed"] {
+  animation: slideUp 0.3s ease-in;
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 }
 
 .dropdown-header {
@@ -92,7 +135,7 @@
   align-items: center;
   gap: 1rem;
   padding: 1.5rem;
-  background: rgba(255, 165, 0, 0.05);
+  background: linear-gradient(135deg, rgba(255, 165, 0, 0.08), rgba(255, 165, 0, 0.03));
   border-bottom: 1px solid var(--border-light);
 }
 
@@ -100,14 +143,16 @@
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: #fca212;
-  color: var(--logo-black);
+  background: linear-gradient(135deg, #fca212, #ff8c00);
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 1.3rem;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(252, 162, 18, 0.3);
+  border: 3px solid rgba(255, 255, 255, 0.2);
 }
 
 .user-details h4 {
@@ -153,12 +198,15 @@
   color: var(--text-dark);
   font-size: 0.9rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
   text-align: left;
+  border-radius: 8px;
+  margin: 0.2rem 0.5rem;
 }
 
 .dropdown-item:hover:not(:disabled) {
   background: rgba(255, 165, 0, 0.1);
+  transform: translateX(4px);
 }
 
 .dropdown-item:disabled {
@@ -242,8 +290,15 @@
 
 @media (max-width: 480px) {
   .user-profile {
-    min-width: 120px;
+    min-width: 100px;
     gap: 0.5rem;
+    padding: 0.3rem 0.6rem;
+  }
+  
+  .user-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 0.9rem;
   }
   
   .user-info {
@@ -253,5 +308,20 @@
   .user-dropdown {
     min-width: 200px;
     right: -2rem;
+  }
+  
+  .dropdown-header {
+    padding: 0.8rem;
+  }
+  
+  .user-avatar-large {
+    width: 35px;
+    height: 35px;
+    font-size: 1rem;
+  }
+  
+  .dropdown-item {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
   }
 }

@@ -11,6 +11,7 @@ const ClientsPage = () => {
   const [editingClient, setEditingClient] = useState(null);
   const [expandedReviews, setExpandedReviews] = useState(new Set());
   const [sendingSMS, setSendingSMS] = useState(new Set());
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -27,6 +28,16 @@ const ClientsPage = () => {
     }
     // Jeśli user jest undefined (jeszcze się ładuje), nie rób nic
   }, [user]);
+
+  // Obsługa zmiany rozmiaru okna
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const fetchClients = async () => {
     if (!user?.email) {
@@ -190,6 +201,7 @@ const ClientsPage = () => {
                       note: ''
                     });
                   }}
+                  aria-label="Zamknij formularz"
                 >
                   ×
                 </button>
@@ -254,7 +266,9 @@ const ClientsPage = () => {
             </div>
           ) : clients.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon">👥</div>
+              <div className="empty-icon">
+                <i data-feather="users"></i>
+              </div>
               <h3>Brak klientów</h3>
               <p>Dodaj pierwszego klienta, aby rozpocząć zarządzanie bazą danych</p>
             </div>
@@ -342,7 +356,7 @@ const ClientsPage = () => {
                             disabled={sendingSMS.has(client.id)}
                             title="Wyślij SMS z linkiem do opinii"
                           >
-                            {sendingSMS.has(client.id) ? '⏳' : '📱'}
+                            {sendingSMS.has(client.id) ? <i data-feather='clock'></i> : <i data-feather='smartphone'></i>}
                           </button>
                         )}
                         <button 
@@ -357,7 +371,7 @@ const ClientsPage = () => {
                           onClick={() => handleDelete(client.id)}
                           title="Usuń klienta"
                         >
-                          🗑️
+                          <i data-feather='trash-2'></i>
                         </button>
                       </td>
                     </tr>
@@ -374,6 +388,7 @@ const ClientsPage = () => {
         className="floating-add-btn"
         onClick={() => setShowForm(true)}
         title="Dodaj nowego klienta"
+        aria-label="Dodaj nowego klienta"
       >
         <span className="add-icon">+</span>
       </button>

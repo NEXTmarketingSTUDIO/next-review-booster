@@ -48,6 +48,17 @@ const UserNav = () => {
       <div 
         className="user-profile"
         onClick={() => setShowDropdown(!showDropdown)}
+        role="button"
+        tabIndex={0}
+        aria-haspopup="menu"
+        aria-expanded={showDropdown}
+        data-state={showDropdown ? 'open' : 'closed'}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setShowDropdown(!showDropdown);
+          }
+        }}
       >
         <div className="user-avatar">
           {user.displayName ? user.displayName.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
@@ -66,7 +77,12 @@ const UserNav = () => {
       </div>
 
       {showDropdown && (
-        <div className="user-dropdown">
+        <div 
+          className="user-dropdown"
+          role="menu"
+          aria-labelledby="user-profile"
+          data-state={showDropdown ? 'open' : 'closed'}
+        >
           <div className="dropdown-header">
             <div className="user-avatar-large">
               {user.displayName ? user.displayName.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
@@ -85,11 +101,57 @@ const UserNav = () => {
           </div>
 
           <div className="dropdown-actions">
-            <button className="dropdown-item" onClick={() => window.location.href = '/dashboard/qrcodes'}>
-              <span className="icon">📱</span>
-              Kod QR
+            <button 
+              className="dropdown-item" 
+              onClick={() => window.location.href = '/dashboard'}
+              role="menuitem"
+              tabIndex={0}
+            >
+              <span className="icon">
+                <i data-feather="bar-chart-2"></i>
+              </span>
+              Dashboard
             </button>
-            <button className="dropdown-item" onClick={() => window.location.href = '/dashboard/settings'}>
+            <button 
+              className="dropdown-item" 
+              onClick={() => window.location.href = '/dashboard/customers'}
+              role="menuitem"
+              tabIndex={0}
+            >
+              <span className="icon">
+                <i data-feather="users"></i>
+              </span>
+              Klienci
+            </button>
+            <button 
+              className="dropdown-item" 
+              onClick={() => window.location.href = '/dashboard/review-links'}
+              role="menuitem"
+              tabIndex={0}
+            >
+              <span className="icon">
+                <i data-feather="smartphone"></i>
+              </span>
+              Kody QR
+            </button>
+            <button 
+              className="dropdown-item" 
+              onClick={() => window.location.href = '/dashboard/statistics'}
+              role="menuitem"
+              tabIndex={0}
+            >
+              <span className="icon">
+                <i data-feather="trending-up"></i>
+              </span>
+              Statystyki
+            </button>
+            <div className="dropdown-divider"></div>
+            <button 
+              className="dropdown-item" 
+              onClick={() => window.location.href = '/dashboard/settings'}
+              role="menuitem"
+              tabIndex={0}
+            >
               <span className="icon">⚙️</span>
               Ustawienia
             </button>
@@ -98,12 +160,14 @@ const UserNav = () => {
               className="dropdown-item logout"
               onClick={handleLogout}
               disabled={loggingOut}
+              role="menuitem"
+              tabIndex={0}
             >
               <span className="icon">
                 {loggingOut ? (
                   <div className="loading-spinner-small"></div>
                 ) : (
-                  '🚪'
+                  <i data-feather='log-out'></i>
                 )}
               </span>
               {loggingOut ? 'Wylogowywanie...' : 'Wyloguj się'}
