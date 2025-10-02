@@ -150,7 +150,8 @@ class UserData(BaseModel):
 class TwilioSettings(BaseModel):
     account_sid: str = ""
     auth_token: str = ""
-    phone_number: str = ""
+    phone_number: str = ""  # Zachowujemy dla kompatybilności wstecznej
+    messaging_service_sid: str = ""  # Nowe pole dla Messaging Service SID
 
 class MessagingSettings(BaseModel):
     reminderFrequency: int = 7
@@ -232,9 +233,16 @@ def get_twilio_client_for_user(username: str):
         account_sid = twilio_config.get("account_sid")
         auth_token = twilio_config.get("auth_token")
         phone_number = twilio_config.get("phone_number")
+        messaging_service_sid = twilio_config.get("messaging_service_sid")
         
-        if not all([account_sid, auth_token, phone_number]):
+        # Sprawdź czy mamy podstawowe dane (account_sid i auth_token są wymagane)
+        if not all([account_sid, auth_token]):
             print(f"⚠️ Niekompletna konfiguracja Twilio dla użytkownika: {username}")
+            return None
+        
+        # Sprawdź czy mamy messaging_service_sid (preferowane) lub phone_number (fallback)
+        if not messaging_service_sid and not phone_number:
+            print(f"⚠️ Brak messaging_service_sid ani phone_number dla użytkownika: {username}")
             return None
         
         # Utwórz klienta Twilio
@@ -243,7 +251,8 @@ def get_twilio_client_for_user(username: str):
         
         return {
             "client": client,
-            "phone_number": phone_number
+            "phone_number": phone_number,
+            "messaging_service_sid": messaging_service_sid
         }
         
     except Exception as e:
@@ -252,13 +261,14 @@ def get_twilio_client_for_user(username: str):
 
 # Funkcja do wysyłania SMS przez Twilio
 async def send_sms(to_phone: str, message: str, twilio_config: dict) -> dict:
-    """Wysyła SMS przez Twilio"""
+    """Wysyła SMS przez Twilio używając Messaging Service SID lub numeru telefonu"""
     if not twilio_config:
         raise HTTPException(status_code=500, detail="Twilio nie jest skonfigurowany")
     
     try:
         client = twilio_config["client"]
-        phone_number = twilio_config["phone_number"]
+        messaging_service_sid = twilio_config.get("messaging_service_sid")
+        phone_number = twilio_config.get("phone_number")
         
         # Wyczyść numer telefonu (usuń spacje, myślniki)
         clean_phone = ''.join(filter(str.isdigit, to_phone))
@@ -274,13 +284,26 @@ async def send_sms(to_phone: str, message: str, twilio_config: dict) -> dict:
         
         print(f"📱 Wysyłanie SMS do: {formatted_phone}")
         print(f"💬 Treść: {message}")
-        print(f"📞 Z numeru: {phone_number}")
         
-        message_obj = client.messages.create(
-            body=message,
-            from_=phone_number,
-            to=formatted_phone
-        )
+        # Użyj Messaging Service SID jeśli dostępny (preferowane), w przeciwnym razie użyj numeru telefonu
+        if messaging_service_sid:
+            print(f"📞 Używając Messaging Service SID: {messaging_service_sid}")
+            # Dokładnie taka sama składnia jak w przykładzie Twilio SDK
+            message_obj = client.messages.create(
+                messaging_service_sid=messaging_service_sid,
+                body=message,
+                to=formatted_phone,
+                status_callback=None  # Wyłącz callback URL
+            )
+        elif phone_number:
+            print(f"📞 Używając numeru telefonu: {phone_number}")
+            message_obj = client.messages.create(
+                body=message,
+                from_=phone_number,
+                to=formatted_phone
+            )
+        else:
+            raise HTTPException(status_code=500, detail="Brak konfiguracji nadawcy (messaging_service_sid lub phone_number)")
         
         print(f"✅ SMS wysłany pomyślnie. SID: {message_obj.sid}")
         
@@ -1359,6 +1382,13 @@ async def send_reminders_now():
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Błąd podczas wysyłania przypomnień: {str(e)}")
+
+# Endpoint dla Twilio StatusCallback
+@app.post("/twilio/delivery-status")
+async def twilio_delivery_status(request: dict):
+    """Endpoint dla statusu dostarczenia SMS od Twilio"""
+    print(f"📊 Status dostarczenia SMS: {request}")
+    return {"status": "received"}
 
 # Endpoint do sprawdzenia statusu schedulera
 @app.get("/reminders/status")

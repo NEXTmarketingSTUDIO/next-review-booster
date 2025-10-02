@@ -1,0 +1,124 @@
+/* Mobile-specific styles for better touch experience */
+
+/* Touch-friendly buttons */
+@media (max-width: 768px) {
+  .btn, button, a {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+  
+  /* Better spacing for touch targets */
+  .btn-icon {
+    padding: 0.5rem;
+    margin: 0.2rem;
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Prevent zoom on input focus (iOS) */
+  input, textarea, select {
+    font-size: 16px;
+  }
+  
+  /* Better scroll behavior */
+  .clients-table-container {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Smooth scrolling for mobile */
+  html {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Better modal behavior on mobile */
+  .client-form-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Better table scrolling on mobile */
+  .clients-table {
+    touch-action: pan-x;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Even better touch targets for small screens */
+  .btn, button, a {
+    min-height: 40px;
+    min-width: 40px;
+  }
+  
+  .btn-icon {
+    padding: 0.4rem;
+    margin: 0.1rem;
+    min-height: 40px;
+    min-width: 40px;
+  }
+  
+  /* Better form inputs on small screens */
+  .form-group input,
+  .form-group textarea {
+    padding: 0.8rem;
+    font-size: 16px;
+  }
+  
+  /* Better floating button positioning */
+  .floating-add-btn {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 1000;
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (max-width: 768px) and (orientation: landscape) {
+  .hero {
+    min-height: 60vh;
+  }
+  
+  .dashboard-header {
+    padding: 0.5rem 1rem;
+  }
+  
+  .dashboard-content {
+    padding: 0.5rem;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .logo-image,
+  .hero-logo {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Dark mode support for mobile */
+@media (prefers-color-scheme: dark) and (max-width: 768px) {
+  .mobile-overlay {
+    background: rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .btn, button, a, .card, .feature-card, .stat-card {
+    transition: none;
+  }
+  
+  .btn:hover, .card:hover, .feature-card:hover, .stat-card:hover {
+    transform: none;
+  }
+}

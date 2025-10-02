@@ -15,8 +15,9 @@ const Dashboard = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(window.innerWidth <= 768);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const profileDropdownRef = useRef(null);
 
   // Lista elementów menu - odwzorowanie 1:1 z obrazka
@@ -161,10 +162,37 @@ const Dashboard = () => {
     };
   }, [closeProfileDropdown]);
 
+  // Obsługa zmiany rozmiaru okna
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+      if (window.innerWidth > 768) {
+        setSidebarCollapsed(false); // Na desktop domyślnie otwarty
+      } else {
+        setSidebarCollapsed(true); // Na mobile domyślnie zamknięty
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <div className="dashboard-layout">
+      {/* Mobile Overlay */}
+      {isMobile && !sidebarCollapsed && (
+        <div 
+          className="mobile-overlay"
+          onClick={() => setSidebarCollapsed(true)}
+        />
+      )}
+      
       {/* Sidebar */}
-      <aside className={`dashboard-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+          <aside 
+            className={`dashboard-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}
+            aria-label="Navigation sidebar"
+            data-state={sidebarCollapsed ? 'collapsed' : 'expanded'}
+          >
         <div className="sidebar-inner">
           {/* Header */}
           <div className="sidebar-header">
@@ -178,12 +206,14 @@ const Dashboard = () => {
             <div className="sidebar-group">
               <ul className="sidebar-menu">
                 {menuItems.map((item) => (
-                  <li key={item.id} className="sidebar-menu-item">
-                    <Link to={item.path} className="menu-link">
-                      <button 
-                        className={`sidebar-menu-button ${isActive(item.path) ? 'active' : ''}`}
-                        data-active={isActive(item.path)}
-                      >
+                      <li key={item.id} className="sidebar-menu-item">
+                        <Link to={item.path} className="menu-link">
+                          <button 
+                            className={`sidebar-menu-button ${isActive(item.path) ? 'active' : ''}`}
+                            data-active={isActive(item.path)}
+                            aria-current={isActive(item.path) ? 'page' : undefined}
+                            role="menuitem"
+                          >
                         {item.icon}
                         <span>{item.label}</span>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-right ml-auto">
@@ -200,8 +230,14 @@ const Dashboard = () => {
           {/* Footer */}
           <div className="sidebar-footer" ref={profileDropdownRef}>
             <ul className="sidebar-menu">
-              <li className="sidebar-menu-item" onClick={toggleProfileDropdown}>
-                <button className="sidebar-menu-button footer-button">
+                  <li className="sidebar-menu-item" onClick={toggleProfileDropdown}>
+                    <button 
+                      className="sidebar-menu-button footer-button"
+                      aria-haspopup="menu"
+                      aria-expanded={isProfileDropdownOpen}
+                      data-state={isProfileDropdownOpen ? 'open' : 'closed'}
+                      role="button"
+                    >
                   <span className="avatar-fallback">
                     {user?.photoURL ? (
                       <img 
@@ -232,8 +268,13 @@ const Dashboard = () => {
             </ul>
 
             {/* Rozwijane menu profilu */}
-            {isProfileDropdownOpen && !sidebarCollapsed && (
-              <div className="profile-dropdown-menu">
+                {isProfileDropdownOpen && !sidebarCollapsed && (
+                  <div 
+                    className="profile-dropdown-menu"
+                    role="menu"
+                    aria-labelledby="user-profile"
+                    data-state={isProfileDropdownOpen ? 'open' : 'closed'}
+                  >
                 <div className="profile-dropdown-header">
                   <span className="avatar-fallback large">
                     {user?.photoURL ? (
@@ -262,26 +303,43 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <ul className="profile-dropdown-list">
-                  <li>
-                    <Link to="/dashboard/review-links" className="profile-dropdown-item" onClick={() => setIsProfileDropdownOpen(false)}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-smartphone h-4 w-4">
-                        <rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect>
-                        <path d="M12 18h.01"></path>
-                      </svg>
-                      Wygeneruj kody QR
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/dashboard/settings" className="profile-dropdown-item" onClick={() => setIsProfileDropdownOpen(false)}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-settings h-4 w-4">
-                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.78 1.35a2 2 0 0 0 .73 2.73l.15.08a2 2 0 0 1 1 1.73v.44a2 2 0 0 1-1 1.73l-.15.08a2 2 0 0 0-.73 2.73l.78 1.35a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 1 1.73v.44a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.78-1.35a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.73v-.44a2 2 0 0 1 1-1.73l.15-.08a2 2 0 0 0 .73-2.73l-.78-1.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-                        <circle cx="12" cy="12" r="3"/>
-                      </svg>
-                      Ustawienia
-                    </Link>
-                  </li>
-                  <li>
-                    <button className="profile-dropdown-item logout-button" onClick={() => { logout(); setIsProfileDropdownOpen(false); }}>
+                      <li>
+                        <Link 
+                          to="/dashboard/review-links" 
+                          className="profile-dropdown-item" 
+                          onClick={() => setIsProfileDropdownOpen(false)}
+                          role="menuitem"
+                          tabIndex={0}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-smartphone h-4 w-4">
+                            <rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect>
+                            <path d="M12 18h.01"></path>
+                          </svg>
+                          Wygeneruj kody QR
+                        </Link>
+                      </li>
+                      <li>
+                        <Link 
+                          to="/dashboard/settings" 
+                          className="profile-dropdown-item" 
+                          onClick={() => setIsProfileDropdownOpen(false)}
+                          role="menuitem"
+                          tabIndex={0}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-settings h-4 w-4">
+                            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.78 1.35a2 2 0 0 0 .73 2.73l.15.08a2 2 0 0 1 1 1.73v.44a2 2 0 0 1-1 1.73l-.15.08a2 2 0 0 0-.73 2.73l.78 1.35a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 1 1.73v.44a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.78-1.35a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.73v-.44a2 2 0 0 1 1-1.73l.15-.08a2 2 0 0 0 .73-2.73l-.78-1.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                          </svg>
+                          Ustawienia
+                        </Link>
+                      </li>
+                      <li>
+                        <button 
+                          className="profile-dropdown-item logout-button" 
+                          onClick={() => { logout(); setIsProfileDropdownOpen(false); }}
+                          role="menuitem"
+                          tabIndex={0}
+                        >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-log-out h-4 w-4">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                         <polyline points="16,17 21,12 16,7"></polyline>
@@ -310,26 +368,48 @@ const Dashboard = () => {
         {/* Top Bar */}
         <header className="dashboard-header">
           <div className="header-left">
-            <h1>
-              {location.pathname === '/dashboard' && 'Wysyłka prośby o opinię'}
-              {location.pathname.startsWith('/dashboard/visits') && 'Twoje spotkania'}
-              {location.pathname.startsWith('/dashboard/customers') && 'Twoi Klienci'}
-              {location.pathname.startsWith('/dashboard/review-links') && 'Wygeneruj kody QR'}
-              {location.pathname.startsWith('/dashboard/statistics') && 'Dashboard'}
-              {location.pathname.startsWith('/dashboard/google_reviews') && 'Twoje opinie Google'}
-              {location.pathname.startsWith('/dashboard/experiments') && 'Wybierz wariant komunikatu'}
-              {location.pathname.startsWith('/dashboard/settings') && 'Ustawienia'}
-            </h1>
-            <p className="subtitle">
-              {location.pathname === '/dashboard' && 'Zarządzaj wysyłką prośby o opinię'}
-              {location.pathname.startsWith('/dashboard/visits') && 'Śledź twoje spotkania'}
-              {location.pathname.startsWith('/dashboard/customers') && 'Zarządzaj bazą Klientów'}
-              {location.pathname.startsWith('/dashboard/review-links') && 'Wygeneruj kody QR dla firmy'}
-              {location.pathname.startsWith('/dashboard/statistics') && 'Dashboard'}
-              {location.pathname.startsWith('/dashboard/google_reviews') && 'Zarządzaj twoimi opiniami Google'}
-              {location.pathname.startsWith('/dashboard/experiments') && 'Testuj różne wersje komunikatu'}
-              {location.pathname.startsWith('/dashboard/settings') && 'Konfiguruj platformę'}
-            </p>
+            {/* Strzałka w lewym górnym rogu - zawsze widoczna */}
+            <button 
+              className="sidebar-toggle-btn"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              aria-label="Toggle Sidebar"
+              title="Toggle Sidebar"
+              aria-expanded={!sidebarCollapsed}
+              data-state={sidebarCollapsed ? 'collapsed' : 'expanded'}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                {sidebarCollapsed ? (
+                  // Strzałka w prawo gdy sidebar jest zamknięty
+                  <path d="M9 18l6-6-6-6"/>
+                ) : (
+                  // Strzałka w lewo gdy sidebar jest otwarty
+                  <path d="M15 18l-6-6 6-6"/>
+                )}
+              </svg>
+            </button>
+            
+            <div className="header-content">
+              <h1>
+                {location.pathname === '/dashboard' && 'Wysyłka prośby o opinię'}
+                {location.pathname.startsWith('/dashboard/visits') && 'Twoje spotkania'}
+                {location.pathname.startsWith('/dashboard/customers') && 'Twoi Klienci'}
+                {location.pathname.startsWith('/dashboard/review-links') && 'Wygeneruj kody QR'}
+                {location.pathname.startsWith('/dashboard/statistics') && 'Dashboard'}
+                {location.pathname.startsWith('/dashboard/google_reviews') && 'Twoje opinie Google'}
+                {location.pathname.startsWith('/dashboard/experiments') && 'Wybierz wariant komunikatu'}
+                {location.pathname.startsWith('/dashboard/settings') && 'Ustawienia'}
+              </h1>
+              <p className="subtitle">
+                {location.pathname === '/dashboard' && 'Zarządzaj wysyłką prośby o opinię'}
+                {location.pathname.startsWith('/dashboard/visits') && 'Śledź twoje spotkania'}
+                {location.pathname.startsWith('/dashboard/customers') && 'Zarządzaj bazą Klientów'}
+                {location.pathname.startsWith('/dashboard/review-links') && 'Wygeneruj kody QR dla firmy'}
+                {location.pathname.startsWith('/dashboard/statistics') && 'Dashboard'}
+                {location.pathname.startsWith('/dashboard/google_reviews') && 'Zarządzaj twoimi opiniami Google'}
+                {location.pathname.startsWith('/dashboard/experiments') && 'Testuj różne wersje komunikatu'}
+                {location.pathname.startsWith('/dashboard/settings') && 'Konfiguruj platformę'}
+              </p>
+            </div>
           </div>
           <div className="header-right">
             {/* UserNav functionality moved to sidebar footer */}

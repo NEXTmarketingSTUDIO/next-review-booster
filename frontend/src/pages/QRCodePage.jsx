@@ -169,7 +169,7 @@ const QRCodePage = () => {
                         className="btn btn-small"
                         onClick={() => downloadQRCode(qrCode, qrCode.company_name)}
                       >
-                        📥 Pobierz
+                        <i data-feather="download"></i> Pobierz
                       </button>
                     </div>
                   </div>
