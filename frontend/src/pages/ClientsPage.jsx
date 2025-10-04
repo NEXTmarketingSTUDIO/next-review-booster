@@ -11,6 +11,7 @@ const ClientsPage = () => {
   const [editingClient, setEditingClient] = useState(null);
   const [expandedReviews, setExpandedReviews] = useState(new Set());
   const [sendingSMS, setSendingSMS] = useState(new Set());
+  const [sendingToAll, setSendingToAll] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [formData, setFormData] = useState({
     name: '',
@@ -179,6 +180,47 @@ const ClientsPage = () => {
     }
   };
 
+  const handleSendSMSToAll = async () => {
+    if (!user?.email) {
+      alert('❌ Nie jesteś zalogowany');
+      return;
+    }
+
+    // Sprawdź czy są klienci do wysłania
+    const clientsToSend = clients.filter(client => 
+      client.phone && 
+      client.review_code && 
+      client.review_status !== 'completed'
+    );
+
+    if (clientsToSend.length === 0) {
+      alert('❌ Brak klientów do wysłania wiadomości (wszyscy mają status "completed" lub brak numeru telefonu)');
+      return;
+    }
+
+    if (window.confirm(`Czy chcesz wysłać SMS do wszystkich ${clientsToSend.length} klientów o statusie recenzji różnym od "completed"?`)) {
+      try {
+        setSendingToAll(true);
+        
+        const username = user.email.split('@')[0];
+        const result = await apiService.sendSMSToAllClients(username);
+        
+        alert(`✅ Proces zakończony! Wysłano ${result.sent} z ${result.total_found} klientów`);
+        
+        if (result.errors && result.errors.length > 0) {
+          console.warn('⚠️ Niektóre SMS-y nie zostały wysłane:', result.errors);
+        }
+        
+        fetchClients(); // Odśwież listę klientów
+      } catch (error) {
+        console.error('❌ Błąd wysyłania SMS do wszystkich klientów:', error);
+        alert('❌ Wystąpił błąd podczas wysyłania SMS: ' + (error.response?.data?.detail || error.message));
+      } finally {
+        setSendingToAll(false);
+      }
+    }
+  };
+
 
   return (
     <div className="clients-page">
@@ -257,6 +299,29 @@ const ClientsPage = () => {
           </div>
         )}
 
+        {/* Przycisk wysyłania do wszystkich klientów */}
+        {clients.length > 0 && (
+          <div className="clients-header-actions">
+            <button 
+              className={`btn-test-send ${sendingToAll ? 'loading' : ''}`}
+              onClick={handleSendSMSToAll}
+              disabled={sendingToAll}
+              title="Wyślij SMS do wszystkich klientów o statusie recenzji różnym od 'completed'"
+            >
+              {sendingToAll ? (
+                <>
+                  <span className="loading-spinner-small"></span>
+                  Wysyłanie...
+                </>
+              ) : (
+                <>
+                  📱 Wyślij do wszystkich
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
         {/* Lista klientów */}
         <div className="clients-content">
           {loading ? (
@@ -282,7 +347,7 @@ const ClientsPage = () => {
                     <th>Notatka</th>
                     <th>Ocena</th>
                     <th>Recenzja</th>
-                    <th>Data dodania</th>
+                    <th>Data utworzenia</th>
                     <th>Akcje</th>
                   </tr>
                 </thead>
@@ -341,38 +406,61 @@ const ClientsPage = () => {
                         )}
                       </td>
                       <td className="client-date">
-                        {client.updated_at ? 
-                          (typeof client.updated_at === 'string' 
-                            ? new Date(client.updated_at).toLocaleDateString('pl-PL')
-                            : client.updated_at.toLocaleDateString('pl-PL')
+                        {client.created_at ? 
+                          (typeof client.created_at === 'string' 
+                            ? new Date(client.created_at).toLocaleDateString('pl-PL')
+                            : client.created_at.toLocaleDateString('pl-PL')
                           ) : 'Nieznana data'
                         }
                       </td>
                       <td className="client-actions">
-                        {client.phone && (
+                        <div className="action-buttons">
+                          {client.phone && (
+                            <button 
+                              className={`action-btn sms-btn ${sendingSMS.has(client.id) ? 'loading' : ''}`}
+                              onClick={() => handleSendSMS(client)}
+                              disabled={sendingSMS.has(client.id)}
+                              title="Wyślij SMS z linkiem do opinii"
+                            >
+                              {sendingSMS.has(client.id) ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="loading-icon">
+                                  <circle cx="12" cy="12" r="10"></circle>
+                                  <path d="M12 6v6l4 2"></path>
+                                </svg>
+                              ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect>
+                                  <path d="M12 18h.01"></path>
+                                </svg>
+                              )}
+                              <span className="btn-text">SMS</span>
+                            </button>
+                          )}
                           <button 
-                            className={`btn-icon sms ${sendingSMS.has(client.id) ? 'loading' : ''}`}
-                            onClick={() => handleSendSMS(client)}
-                            disabled={sendingSMS.has(client.id)}
-                            title="Wyślij SMS z linkiem do opinii"
+                            className="action-btn edit-btn"
+                            onClick={() => handleEdit(client)}
+                            title="Edytuj klienta"
                           >
-                            {sendingSMS.has(client.id) ? <i data-feather='clock'></i> : <i data-feather='smartphone'></i>}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                              <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                            <span className="btn-text">Edytuj</span>
                           </button>
-                        )}
-                        <button 
-                          className="btn-icon edit"
-                          onClick={() => handleEdit(client)}
-                          title="Edytuj klienta"
-                        >
-                          ✏️
-                        </button>
-                        <button 
-                          className="btn-icon delete"
-                          onClick={() => handleDelete(client.id)}
-                          title="Usuń klienta"
-                        >
-                          <i data-feather='trash-2'></i>
-                        </button>
+                          <button 
+                            className="action-btn delete-btn"
+                            onClick={() => handleDelete(client.id)}
+                            title="Usuń klienta"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3,6 5,6 21,6"></polyline>
+                              <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                              <line x1="10" x2="10" y1="11" y2="17"></line>
+                              <line x1="14" x2="14" y1="11" y2="17"></line>
+                            </svg>
+                            <span className="btn-text">Usuń</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

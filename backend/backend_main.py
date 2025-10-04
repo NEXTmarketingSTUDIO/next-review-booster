@@ -1437,6 +1437,138 @@ async def send_reminders_now():
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Błąd podczas wysyłania przypomnień: {str(e)}")
 
+# Endpoint do wysyłania wiadomości do wszystkich klientów użytkownika (testowy)
+@app.post("/send-sms-all/{username}")
+async def send_sms_to_all_clients(username: str):
+    """Wyślij SMS do wszystkich klientów użytkownika o statusie recenzji różnym od 'completed'"""
+    print(f"📱 Wysyłanie SMS do wszystkich klientów użytkownika: {username}")
+    
+    if not db:
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Pobierz konfigurację Twilio dla użytkownika
+        twilio_config = get_twilio_client_for_user(username)
+        if not twilio_config:
+            raise HTTPException(status_code=400, detail="Twilio nie jest skonfigurowany dla tego użytkownika")
+        
+        # Pobierz ustawienia użytkownika (szablon wiadomości)
+        settings_doc = db.collection(username).document("Dane").get()
+        message_template = """Dzień dobry!
+
+Chciałbym przypomnieć o możliwości wystawienia opinii o naszych usługach. 
+Wasza opinia jest dla nas bardzo ważna i pomoże innym klientom w podjęciu decyzji.
+
+Link do wystawienia opinii: [LINK]
+
+Z góry dziękuję za poświęcony czas!
+
+Z poważaniem,
+[NAZWA_FIRMY]"""
+        
+        company_name = "Twoja Firma"
+        
+        if settings_doc.exists:
+            settings_data = settings_doc.to_dict()
+            if "messaging" in settings_data and "messageTemplate" in settings_data["messaging"]:
+                message_template = settings_data["messaging"]["messageTemplate"]
+            if "userData" in settings_data and "companyName" in settings_data["userData"]:
+                company_name = settings_data["userData"]["companyName"]
+        
+        # Pobierz wszystkich klientów użytkownika (pomijamy dokument "Dane")
+        clients_collection = db.collection(username)
+        docs = clients_collection.stream()
+        
+        clients_to_send = []
+        total_sent = 0
+        errors = []
+        
+        # Przygotuj listę klientów do wysłania
+        for doc in docs:
+            # Pomiń dokument "Dane"
+            if doc.id == "Dane":
+                continue
+            
+            client_data = doc.to_dict()
+            client_id = doc.id
+            
+            # Sprawdź warunki wysyłki
+            review_status = client_data.get("review_status", "not_sent")
+            phone = client_data.get("phone", "")
+            review_code = client_data.get("review_code", "")
+            client_name = client_data.get("name", "")
+            
+            # Pomiń klientów bez numeru telefonu lub kodu recenzji
+            if not phone or not review_code:
+                continue
+            
+            # Pomiń klientów którzy już ukończyli recenzję
+            if review_status == "completed":
+                continue
+            
+            clients_to_send.append({
+                "id": client_id,
+                "name": client_name,
+                "phone": phone,
+                "review_code": review_code,
+                "review_status": review_status
+            })
+        
+        print(f"📊 Znaleziono {len(clients_to_send)} klientów do wysłania SMS")
+        
+        # Wyślij SMS do każdego klienta
+        for client in clients_to_send:
+            try:
+                # Generuj URL do formularza recenzji
+                base_url = os.getenv("FRONTEND_URL", "https://next-reviews-booster-app.web.app")
+                review_url = f"{base_url}/review/{client['review_code']}"
+                
+                # Przygotuj wiadomość SMS
+                message = message_template.replace("[LINK]", review_url).replace("[NAZWA_FIRMY]", company_name)
+                
+                # Wyślij SMS
+                print(f"📱 Wysyłanie SMS do: {client['name']} ({client['phone']})")
+                result = await send_sms(client['phone'], message, twilio_config)
+                
+                # Zaktualizuj status klienta
+                now = datetime.now()
+                doc_ref = db.collection(username).document(client['id'])
+                update_data = {
+                    "last_sms_sent": now,
+                    "updated_at": now
+                }
+                
+                # Jeśli to pierwszy SMS, zmień status na "sent"
+                if client['review_status'] == "not_sent":
+                    update_data["review_status"] = "sent"
+                
+                doc_ref.update(update_data)
+                
+                total_sent += 1
+                print(f"✅ SMS wysłany do: {client['name']}")
+                
+            except Exception as sms_error:
+                error_msg = f"Błąd wysyłania SMS do {client['name']}: {str(sms_error)}"
+                print(f"❌ {error_msg}")
+                errors.append(error_msg)
+                continue
+        
+        return {
+            "success": True,
+            "message": f"Proces wysyłania zakończony. Wysłano {total_sent} z {len(clients_to_send)} klientów",
+            "total_found": len(clients_to_send),
+            "sent": total_sent,
+            "errors": errors
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Błąd podczas wysyłania SMS do wszystkich klientów: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Błąd podczas wysyłania SMS: {str(e)}")
+
 # Endpoint dla Twilio StatusCallback
 @app.post("/twilio/delivery-status")
 async def twilio_delivery_status(request: dict):
@@ -1467,6 +1599,87 @@ async def get_reminders_status():
     except Exception as e:
         print(f"❌ Błąd podczas sprawdzania statusu schedulera: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Błąd podczas sprawdzania statusu: {str(e)}")
+
+# Endpoint do pobierania statystyk użytkownika
+@app.get("/statistics/{username}")
+async def get_user_statistics(username: str):
+    """Pobierz statystyki użytkownika"""
+    print(f"📊 Pobieranie statystyk dla użytkownika: {username}")
+    
+    if not db:
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Pobierz wszystkich klientów użytkownika
+        clients_ref = db.collection(username)
+        docs = clients_ref.stream()
+        
+        clients = []
+        for doc in docs:
+            # Pomiń dokument "Dane"
+            if doc.id == "Dane":
+                continue
+            
+            client_data = doc.to_dict()
+            clients.append(client_data)
+        
+        # Oblicz statystyki
+        total_clients = len(clients)
+        
+        # Klienci z ukończonymi recenzjami
+        completed_reviews = [client for client in clients if client.get("review_status") == "completed"]
+        total_reviews = len(completed_reviews)
+        
+        # Średnia ocena tylko z klientów którzy wystawili opinie
+        clients_with_stars = [client for client in completed_reviews if client.get("stars", 0) > 0]
+        average_rating = 0
+        if clients_with_stars:
+            total_stars = sum(client.get("stars", 0) for client in clients_with_stars)
+            average_rating = round(total_stars / len(clients_with_stars), 1)
+        
+        # Opinie w tym miesiącu
+        now = datetime.now()
+        current_month = now.month
+        current_year = now.year
+        
+        reviews_this_month = 0
+        for client in completed_reviews:
+            updated_at = client.get("updated_at")
+            if updated_at:
+                # Konwertuj Firebase Timestamp na datetime jeśli potrzeba
+                if hasattr(updated_at, 'to_pydatetime'):
+                    updated_at = updated_at.to_pydatetime()
+                elif isinstance(updated_at, str):
+                    updated_at = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+                
+                if updated_at.month == current_month and updated_at.year == current_year:
+                    reviews_this_month += 1
+        
+        # Zlicz SMS-y
+        sms_sent = len([client for client in clients if client.get("last_sms_sent")])
+        
+        # Wskaźnik konwersji
+        conversion_rate = 0
+        if total_clients > 0:
+            conversion_rate = round((total_reviews / total_clients) * 100, 1)
+        
+        statistics = {
+            "total_clients": total_clients,
+            "total_reviews": total_reviews,
+            "average_rating": average_rating,
+            "reviews_this_month": reviews_this_month,
+            "sms_sent": sms_sent,
+            "conversion_rate": conversion_rate
+        }
+        
+        print(f"✅ Statystyki dla {username}: {statistics}")
+        return statistics
+        
+    except Exception as e:
+        print(f"❌ Błąd podczas pobierania statystyk: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Błąd podczas pobierania statystyk: {str(e)}")
 
 # Uruchomienie serwera
 if __name__ == "__main__":

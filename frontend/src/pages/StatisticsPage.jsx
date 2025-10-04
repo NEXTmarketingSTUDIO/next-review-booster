@@ -26,34 +26,28 @@ const StatisticsPage = () => {
       setLoading(true);
       const username = user.email.split('@')[0];
       
-      // Pobierz klientów
-      const clientsResponse = await apiService.getClients(username);
-      const clients = clientsResponse.clients || [];
+      // Pobierz statystyki z backendu
+      const statisticsData = await apiService.getUserStatistics(username);
       
-      // Oblicz statystyki
-      const totalClients = clients.length;
-      const totalReviews = clients.filter(client => client.review_status === 'completed').length;
-      const averageRating = clients.reduce((sum, client) => sum + (client.rating || 0), 0) / totalClients || 0;
-      const reviewsThisMonth = clients.filter(client => {
-        if (!client.review_date) return false;
-        const reviewDate = new Date(client.review_date);
-        const now = new Date();
-        return reviewDate.getMonth() === now.getMonth() && reviewDate.getFullYear() === now.getFullYear();
-      }).length;
-      
-      const smsSent = clients.filter(client => client.last_sms_sent).length;
-      const conversionRate = totalClients > 0 ? (totalReviews / totalClients) * 100 : 0;
-
       setStatistics({
-        totalClients,
-        totalReviews,
-        averageRating: Math.round(averageRating * 10) / 10,
-        reviewsThisMonth,
-        smsSent,
-        conversionRate: Math.round(conversionRate * 10) / 10
+        totalClients: statisticsData.total_clients || 0,
+        totalReviews: statisticsData.total_reviews || 0,
+        averageRating: statisticsData.average_rating || 0,
+        reviewsThisMonth: statisticsData.reviews_this_month || 0,
+        smsSent: statisticsData.sms_sent || 0,
+        conversionRate: statisticsData.conversion_rate || 0
       });
     } catch (error) {
       console.error('Błąd podczas pobierania statystyk:', error);
+      // W przypadku błędu, wyświetl zera
+      setStatistics({
+        totalClients: 0,
+        totalReviews: 0,
+        averageRating: 0,
+        reviewsThisMonth: 0,
+        smsSent: 0,
+        conversionRate: 0
+      });
     } finally {
       setLoading(false);
     }
