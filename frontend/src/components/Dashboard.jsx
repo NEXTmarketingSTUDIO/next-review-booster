@@ -9,6 +9,7 @@ import StatisticsPage from '../pages/StatisticsPage';
 import VisitsPage from '../pages/VisitsPage';
 import GoogleReviewsPage from '../pages/GoogleReviewsPage';
 import ExperimentsPage from '../pages/ExperimentsPage';
+import HelpPage from '../pages/HelpPage';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -23,33 +24,14 @@ const Dashboard = () => {
   // Lista elementów menu - odwzorowanie 1:1 z obrazka
   const menuItems = [
     {
-      id: 'review-requests',
-      label: 'Wysyłka prośby o opinię',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-scroll-text">
-          <path d="M15 12h-5"></path>
-          <path d="M15 8h-5"></path>
-          <path d="M19 17V5a2 2 0 0 0-2-2H4"></path>
-          <path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"></path>
-        </svg>
-      ),
-      path: '/dashboard'
-    },
-    {
       id: 'visits',
       label: 'Twoje spotkania',
       icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-calendar-days">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-calendar">
           <path d="M8 2v4"></path>
           <path d="M16 2v4"></path>
           <rect width="18" height="18" x="3" y="4" rx="2"></rect>
           <path d="M3 10h18"></path>
-          <path d="M8 14h.01"></path>
-          <path d="M12 14h.01"></path>
-          <path d="M16 14h.01"></path>
-          <path d="M8 18h.01"></path>
-          <path d="M12 18h.01"></path>
-          <path d="M16 18h.01"></path>
         </svg>
       ),
       path: '/dashboard/visits'
@@ -58,9 +40,10 @@ const Dashboard = () => {
       id: 'customers',
       label: 'Twoi Klienci',
       icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user-round">
-          <circle cx="12" cy="8" r="5"></circle>
-          <path d="M20 21a8 8 0 0 0-16 0"></path>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-users">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="m22 21-3-3m0 0a2 2 0 1 0-2.828-2.828L22 21"></path>
         </svg>
       ),
       path: '/dashboard/customers'
@@ -69,10 +52,19 @@ const Dashboard = () => {
       id: 'review-links',
       label: 'Wygeneruj kody QR',
       icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-link2">
-          <path d="M9 17H7A5 5 0 0 1 7 7h2"></path>
-          <path d="M15 7h2a5 5 0 1 1 0 10h-2"></path>
-          <line x1="8" x2="16" y1="12" y2="12"></line>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-qr-code">
+          <rect width="5" height="5" x="3" y="3" rx="1"></rect>
+          <rect width="5" height="5" x="16" y="3" rx="1"></rect>
+          <rect width="5" height="5" x="3" y="16" rx="1"></rect>
+          <path d="M21 16h-3a2 2 0 0 0-2 2v3"></path>
+          <path d="M21 21v.01"></path>
+          <path d="M12 7v3a2 2 0 0 1-2 2H7"></path>
+          <path d="M3 12h.01"></path>
+          <path d="M12 3h.01"></path>
+          <path d="M12 16v.01"></path>
+          <path d="M16 12h1"></path>
+          <path d="M21 12v.01"></path>
+          <path d="M12 21v-1"></path>
         </svg>
       ),
       path: '/dashboard/review-links'
@@ -81,10 +73,11 @@ const Dashboard = () => {
       id: 'statistics',
       label: 'Twoje rezultaty',
       icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chart-no-axes-column">
-          <line x1="18" x2="18" y1="20" y2="10"></line>
-          <line x1="12" x2="12" y1="20" y2="4"></line>
-          <line x1="6" x2="6" y1="20" y2="14"></line>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bar-chart-3">
+          <path d="M3 3v18h18"></path>
+          <path d="M18 17V9"></path>
+          <path d="M13 17V5"></path>
+          <path d="M8 17v-3"></path>
         </svg>
       ),
       path: '/dashboard/statistics'
@@ -94,7 +87,7 @@ const Dashboard = () => {
       label: 'Twoje opinie Google',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-star">
-          <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path>
+          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"></polygon>
         </svg>
       ),
       path: '/dashboard/google_reviews'
@@ -103,10 +96,10 @@ const Dashboard = () => {
       id: 'experiments',
       label: 'Wybierz wariant komunikatu',
       icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-flask-conical">
-          <path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"></path>
-          <path d="M6.453 15h11.094"></path>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-test-tube">
+          <path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V2"></path>
           <path d="M8.5 2h7"></path>
+          <path d="M14.5 16h-5"></path>
         </svg>
       ),
       path: '/dashboard/experiments'
@@ -115,14 +108,24 @@ const Dashboard = () => {
       id: 'settings',
       label: 'Ustawienia',
       icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-settings2">
-          <path d="M20 7h-9"></path>
-          <path d="M14 17H5"></path>
-          <circle cx="17" cy="17" r="3"></circle>
-          <circle cx="7" cy="7" r="3"></circle>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-settings">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
         </svg>
       ),
       path: '/dashboard/settings'
+    },
+    {
+      id: 'help',
+      label: 'Pomoc',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-help-circle">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+          <line x1="12" x2="12.01" y1="17" y2="17"></line>
+        </svg>
+      ),
+      path: '/dashboard/help'
     }
   ];
 
@@ -390,7 +393,6 @@ const Dashboard = () => {
             
             <div className="header-content">
               <h1>
-                {location.pathname === '/dashboard' && 'Wysyłka prośby o opinię'}
                 {location.pathname.startsWith('/dashboard/visits') && 'Twoje spotkania'}
                 {location.pathname.startsWith('/dashboard/customers') && 'Twoi Klienci'}
                 {location.pathname.startsWith('/dashboard/review-links') && 'Wygeneruj kody QR'}
@@ -398,9 +400,10 @@ const Dashboard = () => {
                 {location.pathname.startsWith('/dashboard/google_reviews') && 'Twoje opinie Google'}
                 {location.pathname.startsWith('/dashboard/experiments') && 'Wybierz wariant komunikatu'}
                 {location.pathname.startsWith('/dashboard/settings') && 'Ustawienia'}
+                {location.pathname.startsWith('/dashboard/help') && 'Pomoc'}
               </h1>
               <p className="subtitle">
-                {location.pathname === '/dashboard' && 'Zarządzaj wysyłką prośby o opinię'}
+
                 {location.pathname.startsWith('/dashboard/visits') && 'Śledź twoje spotkania'}
                 {location.pathname.startsWith('/dashboard/customers') && 'Zarządzaj bazą Klientów'}
                 {location.pathname.startsWith('/dashboard/review-links') && 'Wygeneruj kody QR dla firmy'}
@@ -408,6 +411,7 @@ const Dashboard = () => {
                 {location.pathname.startsWith('/dashboard/google_reviews') && 'Zarządzaj twoimi opiniami Google'}
                 {location.pathname.startsWith('/dashboard/experiments') && 'Testuj różne wersje komunikatu'}
                 {location.pathname.startsWith('/dashboard/settings') && 'Konfiguruj platformę'}
+                {location.pathname.startsWith('/dashboard/help') && 'Instrukcje korzystania z platformy'}
               </p>
             </div>
           </div>
@@ -427,6 +431,7 @@ const Dashboard = () => {
             <Route path="/google_reviews" element={<GoogleReviewsPage />} />
             <Route path="/experiments" element={<ExperimentsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/help" element={<HelpPage />} />
           </Routes>
         </div>
       </main>

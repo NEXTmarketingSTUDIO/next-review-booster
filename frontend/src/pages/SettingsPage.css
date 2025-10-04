@@ -29,6 +29,123 @@
   padding: 0 1rem;
 }
 
+/* Etykiety z ikoną pomocy */
+.label-with-help {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.help-icon-container {
+  position: relative;
+  display: inline-block;
+}
+
+.help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: #fca212;
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: help;
+  transition: all 0.3s ease;
+  user-select: none;
+  margin-left: 8px;
+}
+
+.help-icon:hover {
+  background: #e6950f;
+  transform: scale(1.1);
+}
+
+.help-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 10px;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  padding: 0;
+  min-width: 320px;
+  max-width: 400px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.help-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-top-color: white;
+}
+
+.help-tooltip::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: -2px;
+  border: 10px solid transparent;
+  border-top-color: #e2e8f0;
+}
+
+.help-icon-container:hover .help-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.tooltip-content {
+  padding: 1.5rem;
+}
+
+.tooltip-content h4 {
+  margin: 0 0 1rem 0;
+  color: #2d3748;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.tooltip-content ol {
+  margin: 0 0 1rem 0;
+  padding-left: 1.2rem;
+  color: #4a5568;
+  line-height: 1.6;
+}
+
+.tooltip-content li {
+  margin-bottom: 0.5rem;
+}
+
+.tooltip-content strong {
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.tooltip-content p {
+  margin: 0;
+  padding: 0.75rem;
+  background: #f7fafc;
+  border-radius: 8px;
+  color: #4a5568;
+  font-size: 0.9rem;
+  border-left: 3px solid #fca212;
+}
+
 .settings-section {
   background: white;
   border-radius: 20px;

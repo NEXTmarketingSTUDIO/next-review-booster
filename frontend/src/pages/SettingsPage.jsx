@@ -202,7 +202,26 @@ Z poważaniem,
               </div>
 
               <div className="form-group full-width">
-                <label htmlFor="googleCard">Wizytówka Google</label>
+                <label htmlFor="googleCard" className="label-with-help">
+                  Wizytówka Google
+                  <div className="help-icon-container">
+                    <span className="help-icon">?</span>
+                    <div className="help-tooltip">
+                      <div className="tooltip-content">
+                        <h4>Gdzie znaleźć link do prośby o opinie?</h4>
+                        <ol>
+                          <li>Przejdź do <strong>Google My Business</strong></li>
+                          <li>Zaloguj się na swoje konto</li>
+                          <li>Wybierz swoją firmę</li>
+                          <li>Kliknij <strong>"Uzyskaj więcej opinii"</strong></li>
+                          <li>Skopiuj link do udostępnienia</li>
+                          <li>Wklej go w to pole</li>
+                        </ol>
+                        <p><strong>Przykład:</strong> https://g.page/TwojaFirma/review</p>
+                      </div>
+                    </div>
+                  </div>
+                </label>
                 <input
                   type="url"
                   id="googleCard"

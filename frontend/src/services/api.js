@@ -273,6 +273,32 @@ export const apiService = {
     }
   },
 
+  // Endpoint do wysyłania SMS do wszystkich klientów
+  async sendSMSToAllClients(username) {
+    console.log('📱 API: Wysyłanie SMS do wszystkich klientów dla:', username);
+    try {
+      const response = await api.post(`/send-sms-all/${username}`);
+      console.log('✅ API: SMS do wszystkich klientów wysłany:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ API: Błąd wysyłania SMS do wszystkich klientów:', error);
+      throw error;
+    }
+  },
+
+  // Endpoint do pobierania statystyk użytkownika
+  async getUserStatistics(username) {
+    console.log('📊 API: Pobieranie statystyk dla:', username);
+    try {
+      const response = await api.get(`/statistics/${username}`);
+      console.log('✅ API: Statystyki pobrane:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ API: Błąd pobierania statystyk:', error);
+      throw error;
+    }
+  },
+
 };
 
 export default api;
