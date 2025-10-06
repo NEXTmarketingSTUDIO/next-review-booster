@@ -1,5 +1,35 @@
 /* Mobile-specific styles for better touch experience */
 
+/* Fix for menu flickering on Android devices */
+@media (max-width: 768px) {
+  .navigation {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000;
+    perspective: 1000;
+    scroll-snap-align: start;
+  }
+  
+  .nav-links, .nav-right {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+  
+  /* Enhanced snap points for mobile */
+  html {
+    scroll-snap-type: y mandatory;
+  }
+  
+  .hero, .features, .roi-section {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+}
+
 /* Touch-friendly buttons */
 @media (max-width: 768px) {
   .btn, button, a {

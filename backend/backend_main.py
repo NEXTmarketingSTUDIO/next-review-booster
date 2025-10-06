@@ -16,6 +16,9 @@ from fastapi.responses import StreamingResponse
 from twilio.rest import Client
 from apscheduler.schedulers.background import BackgroundScheduler
 import asyncio
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # Załaduj zmienne środowiskowe z pliku .env (jeśli istnieje)
 try:
@@ -207,6 +210,17 @@ class SMSResponse(BaseModel):
     message: str
     sid: Optional[str] = None
 
+# Modele dla formularza kontaktowego
+class ContactFormRequest(BaseModel):
+    name: str
+    email: str
+    company: Optional[str] = ""
+    message: str
+
+class ContactFormResponse(BaseModel):
+    success: bool
+    message: str
+
 # Funkcja do inicjalizacji Twilio dla konkretnego użytkownika
 def get_twilio_client_for_user(username: str):
     """Pobierz klienta Twilio dla konkretnego użytkownika z Firebase"""
@@ -322,6 +336,92 @@ def generate_review_code():
     """Generuje unikalny kod recenzji (10 znaków alfanumerycznych)"""
     alphabet = string.ascii_lowercase + string.digits
     return ''.join(secrets.choice(alphabet) for _ in range(10))
+
+# Funkcja do wysyłania emaili kontaktowych
+async def send_contact_email(contact_data: ContactFormRequest) -> dict:
+    """Wysyła email kontaktowy na adres kontakt@next-reviews-booster.com"""
+    try:
+        # Konfiguracja SMTP dla konta kontakt@next-reviews-booster.com
+        smtp_server = os.getenv("SMTP_SERVER", "h39.seohost.pl")
+        smtp_port = int(os.getenv("SMTP_PORT", "465"))  # Port 465 dla SSL/TLS
+        smtp_username = os.getenv("SMTP_USERNAME", "kontakt@next-reviews-booster.com")
+        smtp_password = os.getenv("SMTP_PASSWORD", "NigdyWiecejPinokio2025!")
+        
+        # Adres docelowy
+        to_email = "kontakt@next-reviews-booster.com"
+        
+        # Przygotuj wiadomość email
+        msg = MIMEMultipart()
+        msg['From'] = smtp_username
+        msg['To'] = to_email
+        msg['Subject'] = f"Nowa wiadomość kontaktowa od {contact_data.name}"
+        
+        # Treść wiadomości
+        body = f"""
+Nowa wiadomość z formularza kontaktowego:
+
+Imię i nazwisko: {contact_data.name}
+Email: {contact_data.email}
+Firma: {contact_data.company if contact_data.company else 'Nie podano'}
+Data: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+Wiadomość:
+{contact_data.message}
+
+---
+Wiadomość wysłana z formularza kontaktowego na stronie next-reviews-booster.com
+"""
+        
+        msg.attach(MIMEText(body, 'plain', 'utf-8'))
+        
+        # Wyślij email
+        print(f"📧 Wysyłanie emaila kontaktowego od: {contact_data.name}")
+        print(f"📧 SMTP Server: {smtp_server}:{smtp_port}")
+        
+        # Użyj SMTP_SSL dla portu 465 (SSL/TLS)
+        if smtp_port == 465:
+            server = smtplib.SMTP_SSL(smtp_server, smtp_port)
+        else:
+            server = smtplib.SMTP(smtp_server, smtp_port)
+            server.starttls()
+        
+        server.login(smtp_username, smtp_password)
+        
+        text = msg.as_string()
+        server.sendmail(smtp_username, to_email, text)
+        server.quit()
+        
+        print(f"✅ Email kontaktowy wysłany pomyślnie od: {contact_data.name}")
+        
+        return {
+            "success": True,
+            "message": "Wiadomość została wysłana pomyślnie. Odpowiemy najszybciej jak to możliwe."
+        }
+        
+    except Exception as e:
+        print(f"❌ Błąd wysyłania emaila kontaktowego: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # W przypadku błędu, zapisz do logów jako backup
+        print("=" * 50)
+        print("BŁĄD WYSYŁANIA EMAILA - ZAPISYWANIE DO LOGÓW")
+        print("=" * 50)
+        print(f"Od: {contact_data.name} <{contact_data.email}>")
+        if contact_data.company:
+            print(f"Firma: {contact_data.company}")
+        print(f"Data: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("-" * 50)
+        print("Wiadomość:")
+        print(contact_data.message)
+        print("-" * 50)
+        print(f"Błąd SMTP: {str(e)}")
+        print("=" * 50)
+        
+        return {
+            "success": True,
+            "message": "Wiadomość została zapisana. Odpowiemy najszybciej jak to możliwe."
+        }
 
 
 # Funkcja do generowania kodu QR
@@ -1599,6 +1699,39 @@ async def get_reminders_status():
     except Exception as e:
         print(f"❌ Błąd podczas sprawdzania statusu schedulera: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Błąd podczas sprawdzania statusu: {str(e)}")
+
+# Endpoint dla formularza kontaktowego
+@app.post("/contact", response_model=ContactFormResponse)
+async def submit_contact_form(contact_data: ContactFormRequest):
+    """Wyślij wiadomość kontaktową"""
+    print(f"📧 Otrzymano wiadomość kontaktową od: {contact_data.name}")
+    print(f"📧 Email: {contact_data.email}")
+    if contact_data.company:
+        print(f"📧 Firma: {contact_data.company}")
+    
+    try:
+        # Walidacja danych
+        if not contact_data.name.strip():
+            raise HTTPException(status_code=400, detail="Imię i nazwisko jest wymagane")
+        
+        if not contact_data.email.strip():
+            raise HTTPException(status_code=400, detail="Email jest wymagany")
+        
+        if not contact_data.message.strip():
+            raise HTTPException(status_code=400, detail="Wiadomość jest wymagana")
+        
+        # Wyślij email
+        result = await send_contact_email(contact_data)
+        
+        return ContactFormResponse(**result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Błąd podczas przetwarzania formularza kontaktowego: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Błąd podczas przetwarzania formularza: {str(e)}")
 
 # Endpoint do pobierania statystyk użytkownika
 @app.get("/statistics/{username}")

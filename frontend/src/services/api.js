@@ -299,6 +299,19 @@ export const apiService = {
     }
   },
 
+  // Endpoint dla formularza kontaktowego
+  async submitContactForm(contactData) {
+    console.log('📧 API: Wysyłanie formularza kontaktowego:', contactData);
+    try {
+      const response = await api.post('/contact', contactData);
+      console.log('✅ API: Formularz kontaktowy wysłany:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ API: Błąd wysyłania formularza kontaktowego:', error);
+      throw error;
+    }
+  },
+
 };
 
 export default api;
