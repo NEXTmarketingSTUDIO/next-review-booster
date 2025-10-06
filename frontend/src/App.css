@@ -99,7 +99,9 @@
   top: 0;
   z-index: 100;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, padding 0.3s ease, box-shadow 0.3s ease;
+  will-change: background, padding, box-shadow;
+  scroll-snap-align: start;
 }
 
 .navigation.scrolled {
@@ -284,7 +286,8 @@
   padding: 0.75rem;
   z-index: 101;
   border-radius: 12px;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, transform 0.3s ease;
+  will-change: background, transform;
 }
 
 .mobile-menu-toggle:hover {
@@ -348,6 +351,12 @@
 /* Smooth scrolling for anchor links */
 html {
   scroll-behavior: smooth;
+  scroll-snap-type: y proximity;
+}
+
+/* Snap points dla lepszej kontroli menu */
+body {
+  scroll-snap-type: y proximity;
 }
 
 .connection-status {
@@ -387,6 +396,7 @@ html {
   position: relative;
   overflow: hidden;
   padding: 2rem 0;
+  scroll-snap-align: start;
 }
 
 .hero-background {
@@ -636,6 +646,7 @@ html {
 .features {
   padding: 6rem 0;
   background: rgba(0, 0, 0, 0.02);
+  scroll-snap-align: start;
 }
 
 .features-grid {
@@ -2063,6 +2074,33 @@ html {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
+.contact-form button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.contact-message {
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.contact-message.success {
+  background: rgba(34, 197, 94, 0.1);
+  color: #15803d;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.contact-message.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
 /* Google Benefits Section */
 .google-benefits {
   padding: 6rem 0;
@@ -2182,6 +2220,7 @@ html {
   padding: clamp(3rem, 8vw, 6rem) 0;
   background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
   color: white;
+  scroll-snap-align: start;
 }
 
 .roi-content {
@@ -2633,8 +2672,9 @@ html {
     transform: translateY(-100%);
     opacity: 0;
     visibility: hidden;
-    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
     z-index: 100;
+    will-change: transform, opacity;
   }
   
   .nav-links.mobile-open {
@@ -2676,9 +2716,10 @@ html {
     transform: translateY(-100%);
     opacity: 0;
     visibility: hidden;
-    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
     z-index: 100;
     border-radius: 0 0 20px 20px;
+    will-change: transform, opacity;
   }
   
   .nav-right.mobile-open {

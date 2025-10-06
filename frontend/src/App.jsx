@@ -28,6 +28,16 @@ function AppContent() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   
+  // Stan formularza kontaktowego
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    company: '',
+    message: ''
+  });
+  const [contactFormLoading, setContactFormLoading] = useState(false);
+  const [contactFormMessage, setContactFormMessage] = useState('');
+  
   // Hook autoryzacji Firebase
   const { user, loading: authLoading } = useAuth();
   const location = useLocation();
@@ -172,14 +182,54 @@ function AppContent() {
   }, []);
 
 
-  // Obsługa scroll
+  // Obsługa scroll z snap points
   useEffect(() => {
+    let ticking = false;
+    let lastScrollY = window.scrollY;
+    let snapTimeout = null;
+    
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          const scrollDelta = Math.abs(currentScrollY - lastScrollY);
+          
+          // Snap point threshold - menu zmienia się tylko przy większych przewijaniach
+          const snapThreshold = 100;
+          
+          if (scrollDelta >= snapThreshold) {
+            const scrolled = currentScrollY > snapThreshold;
+            
+            // Wyczyść poprzedni timeout
+            if (snapTimeout) {
+              clearTimeout(snapTimeout);
+            }
+            
+            // Dodaj opóźnienie dla stabilności
+            snapTimeout = setTimeout(() => {
+              setIsScrolled(prevScrolled => {
+                if (prevScrolled !== scrolled) {
+                  return scrolled;
+                }
+                return prevScrolled;
+              });
+              lastScrollY = currentScrollY;
+            }, 150);
+          }
+          
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (snapTimeout) {
+        clearTimeout(snapTimeout);
+      }
+    };
   }, []);
 
   const checkHealth = async () => {
@@ -195,6 +245,60 @@ function AppContent() {
       setIsConnected(false);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Obsługa formularza kontaktowego
+  const handleContactFormChange = (e) => {
+    const { name, value } = e.target;
+    setContactForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleContactFormSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Walidacja
+    if (!contactForm.name.trim() || !contactForm.email.trim() || !contactForm.message.trim()) {
+      setContactFormMessage('Proszę wypełnić wszystkie wymagane pola');
+      return;
+    }
+
+    // Walidacja email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(contactForm.email)) {
+      setContactFormMessage('Proszę podać prawidłowy adres email');
+      return;
+    }
+
+    try {
+      setContactFormLoading(true);
+      setContactFormMessage('');
+      
+      const result = await apiService.submitContactForm({
+        name: contactForm.name.trim(),
+        email: contactForm.email.trim(),
+        company: contactForm.company.trim(),
+        message: contactForm.message.trim()
+      });
+      
+      setContactFormMessage(result.message);
+      
+      // Wyczyść formularz po udanym wysłaniu
+      setContactForm({
+        name: '',
+        email: '',
+        company: '',
+        message: ''
+      });
+      
+    } catch (error) {
+      console.error('❌ Błąd wysyłania formularza kontaktowego:', error);
+      setContactFormMessage('Wystąpił błąd podczas wysyłania wiadomości. Spróbuj ponownie.');
+    } finally {
+      setContactFormLoading(false);
     }
   };
 
@@ -291,9 +395,9 @@ function AppContent() {
                         <Link to="/register" className="btn btn-primary btn-large">
                           Rozpocznij bezpłatny okres próbny
                         </Link>
-                        <button className="btn btn-secondary btn-large">
+                        {/* <button className="btn btn-secondary btn-large">
                           Zobacz demo
-                        </button>
+                        </button> */}
                       </div>
                     </div>
                     
@@ -551,7 +655,7 @@ function AppContent() {
                     
                     <div className="feature-card">
                       <div className="feature-icon">
-                        <i data-feather="shield-check"></i>
+                        <i data-feather="shield"></i>
                       </div>
                       <h3>Inteligentne filtrowanie</h3>
                       <p>Pozytywne recenzje (5 gwiazdek) <strong>trafiają na Google</strong>. Negatywne zostają tylko u Ciebie - <strong>Masz wpływ na Twoją reputację. Zadziałaj</strong>!</p>
@@ -609,7 +713,7 @@ function AppContent() {
                         
                         <div className="summary-card orange">
                           <div className="card-icon">
-                            <i data-feather="shield-check"></i>
+                            <i data-feather="shield"></i>
                           </div>
                           <div className="card-content">
                             <div className="card-number">-90%</div>
@@ -880,9 +984,9 @@ function AppContent() {
                       <Link to="/register" className="btn btn-primary btn-large">
                           Rozpocznij bezpłatny okres próbny
                       </Link>
-                        <button className="btn btn-secondary btn-large">
+                        {/* <button className="btn btn-secondary btn-large">
                           Zobacz demo
-                        </button>
+                        </button> */}
                     </div>
                   </div>
                 </div>
@@ -1018,21 +1122,59 @@ function AppContent() {
                     
                     <div className="contact-form">
                       <h3>Wyślij wiadomość</h3>
-                      <form>
+                      <form onSubmit={handleContactFormSubmit}>
                         <div className="form-group">
-                          <input type="text" placeholder="Imię i nazwisko" required />
+                          <input 
+                            type="text" 
+                            name="name"
+                            placeholder="Imię i nazwisko" 
+                            value={contactForm.name}
+                            onChange={handleContactFormChange}
+                            required 
+                          />
                         </div>
                         <div className="form-group">
-                          <input type="email" placeholder="Email" required />
+                          <input 
+                            type="email" 
+                            name="email"
+                            placeholder="Email" 
+                            value={contactForm.email}
+                            onChange={handleContactFormChange}
+                            required 
+                          />
                         </div>
                         <div className="form-group">
-                          <input type="text" placeholder="Firma (opcjonalnie)" />
+                          <input 
+                            type="text" 
+                            name="company"
+                            placeholder="Firma (opcjonalnie)" 
+                            value={contactForm.company}
+                            onChange={handleContactFormChange}
+                          />
                         </div>
                         <div className="form-group">
-                          <textarea placeholder="Twoja wiadomość" rows="5" required></textarea>
+                          <textarea 
+                            name="message"
+                            placeholder="Twoja wiadomość" 
+                            rows="5" 
+                            value={contactForm.message}
+                            onChange={handleContactFormChange}
+                            required
+                          ></textarea>
                         </div>
-                        <button type="submit" className="btn btn-primary">
-                          Wyślij wiadomość
+                        
+                        {contactFormMessage && (
+                          <div className={`contact-message ${contactFormMessage.includes('błąd') || contactFormMessage.includes('Proszę') ? 'error' : 'success'}`}>
+                            {contactFormMessage}
+                          </div>
+                        )}
+                        
+                        <button 
+                          type="submit" 
+                          className="btn btn-primary"
+                          disabled={contactFormLoading}
+                        >
+                          {contactFormLoading ? 'Wysyłanie...' : 'Wyślij wiadomość'}
                         </button>
                       </form>
                     </div>
