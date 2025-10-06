@@ -367,7 +367,7 @@ const Dashboard = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="dashboard-main">
+      <main className={`dashboard-main ${sidebarCollapsed ? 'collapsed' : ''}`}>
         {/* Top Bar */}
         <header className="dashboard-header">
           <div className="header-left">

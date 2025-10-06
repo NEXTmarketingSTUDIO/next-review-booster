@@ -567,8 +567,24 @@ Z poważaniem,
                     # Konwertuj Firebase Timestamp na datetime jeśli potrzeba
                     if last_sms_sent and hasattr(last_sms_sent, 'to_pydatetime'):
                         last_sms_sent = last_sms_sent.to_pydatetime()
+                    elif last_sms_sent and isinstance(last_sms_sent, str):
+                        try:
+                            last_sms_sent = datetime.fromisoformat(last_sms_sent.replace('Z', '+00:00'))
+                        except:
+                            last_sms_sent = None
+                    
                     if created_at and hasattr(created_at, 'to_pydatetime'):
                         created_at = created_at.to_pydatetime()
+                    elif created_at and isinstance(created_at, str):
+                        try:
+                            created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                        except:
+                            created_at = None
+                    
+                    print(f"🔍 Sprawdzanie klienta: {client_name}")
+                    print(f"   - Status: {review_status}")
+                    print(f"   - Ostatni SMS: {last_sms_sent}")
+                    print(f"   - Częstotliwość: {reminder_frequency} dni")
                     
                     if review_status == "not_sent":
                         # Jeśli nigdy nie wysłano SMS, wyślij pierwszy raz
@@ -578,10 +594,24 @@ Z poważaniem,
                     elif review_status in ["sent", "opened"]:
                         # Jeśli SMS był wysłany lub link był otwarty, sprawdź czy minął czas na przypomnienie
                         if last_sms_sent:
-                            days_since_last_sms = (now - last_sms_sent).days
-                            if days_since_last_sms >= reminder_frequency:
-                                should_send = True
-                                print(f"🔔 Przypomnienie dla: {client_name} (ostatni SMS: {days_since_last_sms} dni temu)")
+                            # Użyj total_seconds() zamiast days dla dokładniejszego porównania
+                            time_diff = now - last_sms_sent
+                            hours_since_last_sms = time_diff.total_seconds() / 3600
+                            days_since_last_sms = time_diff.days
+                            
+                            print(f"   - Godziny od ostatniego SMS: {hours_since_last_sms:.2f}")
+                            print(f"   - Dni od ostatniego SMS: {days_since_last_sms}")
+                            
+                            # Dla częstotliwości 1 dzień - sprawdź czy minęło co najmniej 24 godziny
+                            if reminder_frequency == 1:
+                                if hours_since_last_sms >= 24:
+                                    should_send = True
+                                    print(f"🔔 Przypomnienie dla: {client_name} (ostatni SMS: {hours_since_last_sms:.1f} godzin temu)")
+                            else:
+                                # Dla innych częstotliwości używaj dni
+                                if days_since_last_sms >= reminder_frequency:
+                                    should_send = True
+                                    print(f"🔔 Przypomnienie dla: {client_name} (ostatni SMS: {days_since_last_sms} dni temu)")
                     
                     if should_send:
                         try:
@@ -635,12 +665,16 @@ scheduler = BackgroundScheduler()
 def run_async_check_and_send_reminders():
     """Wrapper do uruchamiania async funkcji w scheduler"""
     try:
+        print(f"🕐 [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Uruchamianie schedulera przypomnień SMS...")
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(check_and_send_reminders())
+        result = loop.run_until_complete(check_and_send_reminders())
         loop.close()
+        print(f"✅ [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Scheduler zakończony: {result}")
     except Exception as e:
-        print(f"❌ Błąd w schedulerze: {str(e)}")
+        print(f"❌ [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Błąd w schedulerze: {str(e)}")
+        import traceback
+        traceback.print_exc()
 
 # Dodaj zadanie do schedulera - sprawdzaj co godzinę
 scheduler.add_job(
@@ -753,6 +787,12 @@ async def get_clients(username: str):
         for doc in docs:
             doc_count += 1
             print(f"📄 Dokument {doc_count}: {doc.id}")
+            
+            # Pomiń dokument "Dane" - to są ustawienia użytkownika, nie klient
+            if doc.id == "Dane":
+                print(f"⏭️ Pomijanie dokumentu 'Dane' (ustawienia użytkownika)")
+                continue
+            
             client_data = doc.to_dict()
             client_data["id"] = doc.id
             print(f"📊 Dane klienta: {client_data}")
@@ -1529,6 +1569,7 @@ async def send_reminders_now():
         return {
             "success": True,
             "message": "Proces wysyłania przypomnień zakończony",
+            "timestamp": datetime.now().isoformat(),
             "result": result
         }
     except Exception as e:
@@ -1536,6 +1577,67 @@ async def send_reminders_now():
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Błąd podczas wysyłania przypomnień: {str(e)}")
+
+# Endpoint do testowania wysyłania przypomnień dla konkretnego użytkownika
+@app.post("/reminders/test/{username}")
+async def test_reminders_for_user(username: str):
+    """Test wysyłania przypomnień dla konkretnego użytkownika"""
+    print(f"🧪 Test wysyłania przypomnień dla użytkownika: {username}")
+    
+    if not db:
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Sprawdź ustawienia użytkownika
+        settings_doc = db.collection(username).document("Dane").get()
+        if not settings_doc.exists:
+            raise HTTPException(status_code=404, detail="Użytkownik nie został znaleziony")
+        
+        settings_data = settings_doc.to_dict()
+        auto_send_enabled = False
+        reminder_frequency = 7
+        
+        if "messaging" in settings_data:
+            messaging = settings_data["messaging"]
+            auto_send_enabled = messaging.get("autoSendEnabled", False)
+            reminder_frequency = messaging.get("reminderFrequency", 7)
+        
+        # Pobierz klientów
+        clients = []
+        collection = db.collection(username)
+        docs = collection.stream()
+        
+        for doc in docs:
+            if doc.id == "Dane":
+                continue
+            
+            client_data = doc.to_dict()
+            clients.append({
+                "id": doc.id,
+                "name": client_data.get("name", ""),
+                "phone": client_data.get("phone", ""),
+                "review_status": client_data.get("review_status", "not_sent"),
+                "last_sms_sent": client_data.get("last_sms_sent"),
+                "created_at": client_data.get("created_at")
+            })
+        
+        return {
+            "success": True,
+            "username": username,
+            "auto_send_enabled": auto_send_enabled,
+            "reminder_frequency": reminder_frequency,
+            "clients_count": len(clients),
+            "clients": clients,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Błąd podczas testowania przypomnień: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Błąd podczas testowania: {str(e)}")
 
 # Endpoint do wysyłania wiadomości do wszystkich klientów użytkownika (testowy)
 @app.post("/send-sms-all/{username}")
