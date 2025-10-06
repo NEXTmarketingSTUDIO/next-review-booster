@@ -9,7 +9,6 @@
     backface-visibility: hidden;
     -webkit-perspective: 1000;
     perspective: 1000;
-    scroll-snap-align: start;
   }
   
   .nav-links, .nav-right {
@@ -17,16 +16,6 @@
     transform: translateZ(0);
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-  }
-  
-  /* Enhanced snap points for mobile */
-  html {
-    scroll-snap-type: y mandatory;
-  }
-  
-  .hero, .features, .roi-section {
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
   }
 }
 

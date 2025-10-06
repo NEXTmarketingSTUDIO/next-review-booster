@@ -182,40 +182,22 @@ function AppContent() {
   }, []);
 
 
-  // Obsługa scroll z snap points
+  // Obsługa scroll - standardowe zachowanie
   useEffect(() => {
     let ticking = false;
-    let lastScrollY = window.scrollY;
-    let snapTimeout = null;
     
     const handleScroll = () => {
       if (!ticking) {
         requestAnimationFrame(() => {
-          const currentScrollY = window.scrollY;
-          const scrollDelta = Math.abs(currentScrollY - lastScrollY);
+          const scrolled = window.scrollY > 50;
           
-          // Snap point threshold - menu zmienia się tylko przy większych przewijaniach
-          const snapThreshold = 100;
-          
-          if (scrollDelta >= snapThreshold) {
-            const scrolled = currentScrollY > snapThreshold;
-            
-            // Wyczyść poprzedni timeout
-            if (snapTimeout) {
-              clearTimeout(snapTimeout);
+          // Zmień stan tylko jeśli rzeczywiście się zmienił
+          setIsScrolled(prevScrolled => {
+            if (prevScrolled !== scrolled) {
+              return scrolled;
             }
-            
-            // Dodaj opóźnienie dla stabilności
-            snapTimeout = setTimeout(() => {
-              setIsScrolled(prevScrolled => {
-                if (prevScrolled !== scrolled) {
-                  return scrolled;
-                }
-                return prevScrolled;
-              });
-              lastScrollY = currentScrollY;
-            }, 150);
-          }
+            return prevScrolled;
+          });
           
           ticking = false;
         });
@@ -224,12 +206,7 @@ function AppContent() {
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      if (snapTimeout) {
-        clearTimeout(snapTimeout);
-      }
-    };
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const checkHealth = async () => {
@@ -535,7 +512,7 @@ function AppContent() {
                 <div className="container">
                   <div className="decision-content">
                     <div className="decision-header">
-                      <p>Gdy każdy produkt/usługa <strong>wygląda podobnie</strong>, <br />pięć gwiazdek staje się <strong>jedynym kryterium wyboru.</strong></p>
+                      <h2>Gdy każdy produkt/usługa <strong>wygląda podobnie</strong>, <br />pięć gwiazdek staje się <strong>jedynym kryterium wyboru.</strong></h2>
                     </div>
                     
                     <div className="decision-grid">

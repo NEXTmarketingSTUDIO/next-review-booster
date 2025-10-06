@@ -101,7 +101,6 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   transition: background 0.3s ease, padding 0.3s ease, box-shadow 0.3s ease;
   will-change: background, padding, box-shadow;
-  scroll-snap-align: start;
 }
 
 .navigation.scrolled {
@@ -351,12 +350,6 @@
 /* Smooth scrolling for anchor links */
 html {
   scroll-behavior: smooth;
-  scroll-snap-type: y proximity;
-}
-
-/* Snap points dla lepszej kontroli menu */
-body {
-  scroll-snap-type: y proximity;
 }
 
 .connection-status {
@@ -396,7 +389,6 @@ body {
   position: relative;
   overflow: hidden;
   padding: 2rem 0;
-  scroll-snap-align: start;
 }
 
 .hero-background {
@@ -646,7 +638,6 @@ body {
 .features {
   padding: 6rem 0;
   background: rgba(0, 0, 0, 0.02);
-  scroll-snap-align: start;
 }
 
 .features-grid {
@@ -1268,7 +1259,7 @@ body {
   margin-bottom: 4rem;
 }
 
-.decision-header p {
+.decision-header h2 {
   font-size: clamp(2rem, 4vw, 2.75rem);
   font-weight: 400;
   color: var(--text-dark);
@@ -2220,7 +2211,6 @@ body {
   padding: clamp(3rem, 8vw, 6rem) 0;
   background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
   color: white;
-  scroll-snap-align: start;
 }
 
 .roi-content {
@@ -3151,13 +3141,19 @@ body {
   }
   
   .hero-title {
+    text-align: left !important;
     font-size: clamp(1.8rem, 8vw, 2.5rem);
   }
   
   .hero-subtitle {
+    text-align: left !important;
     font-size: clamp(1rem, 4vw, 1.2rem);
   }
   
+  .hero-logo {
+    margin-bottom: 0 !important;
+  }
+
   .hero-buttons .btn {
     padding: 0.8rem 1.5rem;
     font-size: 0.9rem;
@@ -3165,6 +3161,22 @@ body {
   
   .logo-section {
     margin-bottom: 2rem;
+  }
+  
+  .decision-header h2 {
+    text-align: left !important;
+  }
+
+  .section-header h2, p {
+    text-align: left !important;
+  }
+
+  .roi-text {
+    text-align: left !important;
+  }
+
+  .cta-content h2 {
+    text-align: left !important;
   }
   
   .status-section {
