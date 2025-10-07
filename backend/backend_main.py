@@ -342,10 +342,10 @@ async def send_contact_email(contact_data: ContactFormRequest) -> dict:
     """Wysyła email kontaktowy na adres kontakt@next-reviews-booster.com"""
     try:
         # Konfiguracja SMTP dla konta kontakt@next-reviews-booster.com
-        smtp_server = os.getenv("SMTP_SERVER", "h39.seohost.pl")
-        smtp_port = int(os.getenv("SMTP_PORT", "465"))  # Port 465 dla SSL/TLS
-        smtp_username = os.getenv("SMTP_USERNAME", "kontakt@next-reviews-booster.com")
-        smtp_password = os.getenv("SMTP_PASSWORD", "NigdyWiecejPinokio2025!")
+        smtp_server = os.getenv("SMTP_SERVER")
+        smtp_port = int(os.getenv("SMTP_PORT"))
+        smtp_username = os.getenv("SMTP_USERNAME")
+        smtp_password = os.getenv("SMTP_PASSWORD")
         
         # Adres docelowy
         to_email = "kontakt@next-reviews-booster.com"
