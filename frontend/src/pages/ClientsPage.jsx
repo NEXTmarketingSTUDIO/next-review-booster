@@ -22,11 +22,12 @@ const ClientsPage = () => {
     note: ''
   });
   const [filters, setFilters] = useState({
-    search: '',
     source: 'all',
     smsStatus: 'all',
     rating: 'all',
-    hasReview: 'all'
+    sortBy: 'name_asc',
+    dateFrom: '',
+    dateTo: ''
   });
   const [showFilters, setShowFilters] = useState(false);
 
@@ -224,31 +225,20 @@ const ClientsPage = () => {
 
   const clearFilters = () => {
     setFilters({
-      search: '',
       source: 'all',
       smsStatus: 'all',
       rating: 'all',
-      hasReview: 'all'
+      sortBy: 'name_asc',
+      dateFrom: '',
+      dateTo: ''
     });
   };
 
-  // Funkcja filtrowania klientów
+  // Funkcja filtrowania i sortowania klientów
   const getFilteredClients = () => {
     if (!clients) return [];
 
-    return clients.filter(client => {
-      // Filtrowanie po wyszukiwaniu
-      if (filters.search) {
-        const searchTerm = filters.search.toLowerCase();
-        const matchesSearch = 
-          client.name?.toLowerCase().includes(searchTerm) ||
-          client.phone?.includes(searchTerm) ||
-          client.note?.toLowerCase().includes(searchTerm) ||
-          client.review?.toLowerCase().includes(searchTerm);
-        
-        if (!matchesSearch) return false;
-      }
-
+    let filteredClients = clients.filter(client => {
       // Filtrowanie po źródle pochodzenia
       if (filters.source !== 'all') {
         if (client.source !== filters.source) return false;
@@ -265,17 +255,49 @@ const ClientsPage = () => {
       if (filters.rating !== 'all') {
         if (filters.rating === 'no_rating' && client.stars > 0) return false;
         if (filters.rating === 'has_rating' && client.stars === 0) return false;
-        if (filters.rating === 'high_rating' && client.stars < 4) return false;
+        if (filters.rating === 'low_rating' && (client.stars === 0 || client.stars > 4)) return false;
       }
 
-      // Filtrowanie po recenzji
-      if (filters.hasReview !== 'all') {
-        if (filters.hasReview === 'has_review' && !client.review) return false;
-        if (filters.hasReview === 'no_review' && client.review) return false;
+      // Filtrowanie po dacie SMS
+      if (filters.dateFrom || filters.dateTo) {
+        if (!client.last_sms_sent) return false;
+        
+        const smsDate = new Date(client.last_sms_sent);
+        const fromDate = filters.dateFrom ? new Date(filters.dateFrom) : null;
+        const toDate = filters.dateTo ? new Date(filters.dateTo) : null;
+        
+        if (fromDate && smsDate < fromDate) return false;
+        if (toDate && smsDate > toDate) return false;
       }
 
       return true;
     });
+
+    // Sortowanie
+    filteredClients.sort((a, b) => {
+      switch (filters.sortBy) {
+        case 'name_asc':
+          return (a.name || '').localeCompare(b.name || '');
+        case 'name_desc':
+          return (b.name || '').localeCompare(a.name || '');
+        case 'date_asc':
+          const dateA = a.last_sms_sent ? new Date(a.last_sms_sent) : new Date(0);
+          const dateB = b.last_sms_sent ? new Date(b.last_sms_sent) : new Date(0);
+          return dateA - dateB;
+        case 'date_desc':
+          const dateA2 = a.last_sms_sent ? new Date(a.last_sms_sent) : new Date(0);
+          const dateB2 = b.last_sms_sent ? new Date(b.last_sms_sent) : new Date(0);
+          return dateB2 - dateA2;
+        case 'rating_asc':
+          return (a.stars || 0) - (b.stars || 0);
+        case 'rating_desc':
+          return (b.stars || 0) - (a.stars || 0);
+        default:
+          return 0;
+      }
+    });
+
+    return filteredClients;
   };
 
   const copyReviewCode = async (code) => {
@@ -524,17 +546,6 @@ const ClientsPage = () => {
             <div className="filters-content">
               <div className="filter-row">
                 <div className="filter-group">
-                  <label htmlFor="search">Wyszukaj:</label>
-                  <input
-                    type="text"
-                    id="search"
-                    placeholder="Imię, telefon, notatka, recenzja..."
-                    value={filters.search}
-                    onChange={(e) => handleFilterChange('search', e.target.value)}
-                  />
-                </div>
-                
-                <div className="filter-group">
                   <label htmlFor="source">Źródło:</label>
                   <select
                     id="source"
@@ -560,9 +571,7 @@ const ClientsPage = () => {
                     <option value="limit_reached">Limit osiągnięty</option>
                   </select>
                 </div>
-              </div>
-              
-              <div className="filter-row">
+                
                 <div className="filter-group">
                   <label htmlFor="rating">Ocena:</label>
                   <select
@@ -573,23 +582,50 @@ const ClientsPage = () => {
                     <option value="all">Wszystkie</option>
                     <option value="no_rating">Brak oceny</option>
                     <option value="has_rating">Ma ocenę</option>
-                    <option value="high_rating">Wysoka ocena (4-5)</option>
+                    <option value="low_rating">Niska ocena (1-4)</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="filter-row">
+                <div className="filter-group">
+                  <label htmlFor="sortBy">Sortuj według:</label>
+                  <select
+                    id="sortBy"
+                    value={filters.sortBy}
+                    onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                  >
+                    <option value="name_asc">Imię A-Z</option>
+                    <option value="name_desc">Imię Z-A</option>
+                    <option value="date_asc">Data SMS (najstarsze)</option>
+                    <option value="date_desc">Data SMS (najnowsze)</option>
+                    <option value="rating_asc">Ocena (najniższe)</option>
+                    <option value="rating_desc">Ocena (najwyższe)</option>
                   </select>
                 </div>
                 
                 <div className="filter-group">
-                  <label htmlFor="hasReview">Recenzja:</label>
-                  <select
-                    id="hasReview"
-                    value={filters.hasReview}
-                    onChange={(e) => handleFilterChange('hasReview', e.target.value)}
-                  >
-                    <option value="all">Wszystkie</option>
-                    <option value="no_review">Brak recenzji</option>
-                    <option value="has_review">Ma recenzję</option>
-                  </select>
+                  <label htmlFor="dateFrom">Data SMS od:</label>
+                  <input
+                    type="date"
+                    id="dateFrom"
+                    value={filters.dateFrom}
+                    onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+                  />
                 </div>
                 
+                <div className="filter-group">
+                  <label htmlFor="dateTo">Data SMS do:</label>
+                  <input
+                    type="date"
+                    id="dateTo"
+                    value={filters.dateTo}
+                    onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                  />
+                </div>
+              </div>
+              
+              <div className="filter-row">
                 <div className="filter-actions">
                   <button 
                     className="btn btn-secondary"
