@@ -60,7 +60,7 @@
 
 .selected-count {
   font-weight: 600;
-  color: #667eea;
+  color: #fca212;
 }
 
 .clients-list {
@@ -87,7 +87,7 @@
 
 .client-item.selected {
   background-color: #e8f0fe;
-  border: 2px solid #667eea;
+  border: 2px solid #fca212;
 }
 
 .client-item input[type="checkbox"] {
@@ -114,7 +114,7 @@
 
 .review-code {
   display: block;
-  color: #667eea;
+  color: #fca212;
   font-size: 0.8rem;
   font-weight: 600;
   background: #f0f4ff;
@@ -159,7 +159,7 @@
 
 .setting-group select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #fca212;
 }
 
 .qr-results {
@@ -207,7 +207,7 @@
 }
 
 .qr-card:hover {
-  border-color: #667eea;
+  border-color: #fca212;
   box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
 }
 
@@ -241,7 +241,7 @@
 
 .qr-code-text {
   font-size: 0.9rem;
-  color: #667eea;
+  color: #fca212;
   font-weight: 600;
   margin-bottom: 1rem;
 }
@@ -285,7 +285,7 @@
 
 .btn-secondary:hover {
   background: #e9ecef;
-  border-color: #667eea;
+  border-color: #fca212;
 }
 
 .btn-small {
@@ -298,7 +298,7 @@
 
 .btn-small:hover {
   background: #e9ecef;
-  border-color: #667eea;
+  border-color: #fca212;
 }
 
 .loading {
@@ -311,7 +311,7 @@
   width: 50px;
   height: 50px;
   border: 4px solid rgba(0, 0, 0, 0.1);
-  border-top: 4px solid #667eea;
+  border-top: 4px solid #fca212;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 1rem;
