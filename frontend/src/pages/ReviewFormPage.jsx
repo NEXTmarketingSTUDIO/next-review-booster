@@ -36,7 +36,22 @@ const ReviewFormPage = () => {
       setClientInfo(response.data);
     } catch (error) {
       console.error('❌ Błąd podczas pobierania informacji:', error);
-      setError('Nieprawidłowy kod recenzji');
+      console.error('❌ Szczegóły błędu:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url
+      });
+      
+      if (error.response?.status === 404) {
+        setError('Nieprawidłowy kod recenzji');
+      } else if (error.response?.status === 500) {
+        setError('Błąd serwera. Spróbuj ponownie później.');
+      } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+        setError('Brak połączenia z serwerem. Sprawdź połączenie internetowe.');
+      } else {
+        setError('Nieprawidłowy kod recenzji');
+      }
     } finally {
       setLoading(false);
     }
@@ -146,12 +161,6 @@ const ReviewFormPage = () => {
             <div className="error-icon">❌</div>
             <h2>Błąd</h2>
             <p>{error}</p>
-            <button 
-              className="btn btn-primary"
-              onClick={() => navigate('/')}
-            >
-              Wróć na stronę główną
-            </button>
           </div>
         </div>
       </div>
@@ -163,7 +172,6 @@ const ReviewFormPage = () => {
       <div className="review-form-page">
         <div className="container">
           <div className="success-state">
-            <div className="success-icon">✅</div>
             <h2>Dziękujemy!</h2>
             <p>Twoja opinia została pomyślnie zapisana.</p>
             <p>Bardzo cenimy sobie Twoje uwagi!</p>

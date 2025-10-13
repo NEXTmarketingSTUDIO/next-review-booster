@@ -20,6 +20,34 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+def convert_firebase_timestamp_to_naive(timestamp):
+    """Bezpiecznie konwertuj Firebase Timestamp na naive datetime"""
+    if not timestamp:
+        return None
+    
+    if hasattr(timestamp, 'to_pydatetime'):
+        dt = timestamp.to_pydatetime()
+        # Upewnij się, że to jest naive datetime (bez strefy czasowej)
+        if dt.tzinfo is not None:
+            dt = dt.replace(tzinfo=None)
+        return dt
+    elif isinstance(timestamp, str):
+        try:
+            dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+            # Upewnij się, że to jest naive datetime (bez strefy czasowej)
+            if dt.tzinfo is not None:
+                dt = dt.replace(tzinfo=None)
+            return dt
+        except:
+            return None
+    elif isinstance(timestamp, datetime):
+        # Jeśli już jest datetime, upewnij się że jest naive
+        if timestamp.tzinfo is not None:
+            return timestamp.replace(tzinfo=None)
+        return timestamp
+    
+    return None
+
 # Załaduj zmienne środowiskowe z pliku .env (jeśli istnieje)
 try:
     from dotenv import load_dotenv
@@ -41,7 +69,6 @@ try:
             firebase_admin.initialize_app(cred)
             print("✅ Firebase Admin SDK zainicjalizowany z pliku lokalnego")
         else:
-            # Użyj zmiennych środowiskowych (dla Render/produkcji)
             firebase_config = {
                 "type": "service_account",
                 "project_id": os.getenv("FIREBASE_PROJECT_ID", "next-reviews-9d19c"),
@@ -109,11 +136,13 @@ class ClientCreate(BaseModel):
     name: str
     phone: str
     note: str = ""
-    stars: int = 0  # Domyślnie 0 - będzie ustawiane przez klienta
-    review: str = ""  # Domyślnie puste - będzie wypełniane przez klienta
-    review_code: str = ""  # Unikalny kod do wystawiania opinii
-    review_status: str = "not_sent"  # Status recenzji: not_sent, sent, opened, completed
-    last_sms_sent: Optional[datetime] = None  # Kiedy ostatnio wysłano SMS
+    stars: int = 0
+    review: str = ""
+    review_code: str = ""
+    review_status: str = "not_sent"
+    last_sms_sent: Optional[datetime] = None
+    sms_count: int = 0
+    source: str = "CRM"
 
 class ClientUpdate(BaseModel):
     name: Optional[str] = None
@@ -124,6 +153,8 @@ class ClientUpdate(BaseModel):
     review_code: Optional[str] = None
     review_status: Optional[str] = None
     last_sms_sent: Optional[datetime] = None
+    sms_count: Optional[int] = None
+    source: Optional[str] = None
 
 class ClientResponse(BaseModel):
     id: str
@@ -137,6 +168,8 @@ class ClientResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     last_sms_sent: Optional[datetime] = None
+    sms_count: int = 0
+    source: str = "CRM"
 
 class ClientListResponse(BaseModel):
     clients: List[ClientResponse]
@@ -548,6 +581,7 @@ Z poważaniem,
                     phone = client_data.get("phone", "")
                     review_code = client_data.get("review_code", "")
                     client_name = client_data.get("name", "")
+                    sms_count = client_data.get("sms_count", 0)
                     
                     # Pomiń klientów bez numeru telefonu lub kodu recenzji
                     if not phone or not review_code:
@@ -555,6 +589,10 @@ Z poważaniem,
                     
                     # Pomiń klientów którzy już ukończyli recenzję
                     if review_status == "completed":
+                        continue
+                    
+                    # Pomiń klientów którzy osiągnęli limit SMS
+                    if sms_count >= 2:
                         continue
                     
                     # Sprawdź czy minął odpowiedni czas od ostatniego SMS
@@ -565,21 +603,8 @@ Z poważaniem,
                     should_send = False
                     
                     # Konwertuj Firebase Timestamp na datetime jeśli potrzeba
-                    if last_sms_sent and hasattr(last_sms_sent, 'to_pydatetime'):
-                        last_sms_sent = last_sms_sent.to_pydatetime()
-                    elif last_sms_sent and isinstance(last_sms_sent, str):
-                        try:
-                            last_sms_sent = datetime.fromisoformat(last_sms_sent.replace('Z', '+00:00'))
-                        except:
-                            last_sms_sent = None
-                    
-                    if created_at and hasattr(created_at, 'to_pydatetime'):
-                        created_at = created_at.to_pydatetime()
-                    elif created_at and isinstance(created_at, str):
-                        try:
-                            created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                        except:
-                            created_at = None
+                    last_sms_sent = convert_firebase_timestamp_to_naive(last_sms_sent)
+                    created_at = convert_firebase_timestamp_to_naive(created_at)
                     
                     print(f"🔍 Sprawdzanie klienta: {client_name}")
                     print(f"   - Status: {review_status}")
@@ -630,7 +655,8 @@ Z poważaniem,
                             doc_ref = db.collection(collection_name).document(client_id)
                             update_data = {
                                 "last_sms_sent": now,
-                                "updated_at": now
+                                "updated_at": now,
+                                "sms_count": sms_count + 1
                             }
                             
                             # Jeśli to pierwszy SMS, zmień status na "sent"
@@ -733,7 +759,9 @@ async def create_client(username: str, client_data: ClientCreate):
             "updated_at": now,
             "review_code": review_code,
             "review_status": "not_sent",
-            "last_sms_sent": None
+            "last_sms_sent": None,
+            "sms_count": 0,
+            "source": "CRM"
         })
         print(f"📝 Dane do zapisu: {client_dict}")
         print(f"🔑 Wygenerowany kod recenzji: {review_code}")
@@ -749,12 +777,12 @@ async def create_client(username: str, client_data: ClientCreate):
         print(f"📖 Odczytane dane: {client_data_dict}")
         
         # Konwertuj Firebase Timestamp na datetime
-        if "created_at" in client_data_dict and hasattr(client_data_dict["created_at"], 'to_pydatetime'):
-            client_data_dict["created_at"] = client_data_dict["created_at"].to_pydatetime()
-        if "updated_at" in client_data_dict and hasattr(client_data_dict["updated_at"], 'to_pydatetime'):
-            client_data_dict["updated_at"] = client_data_dict["updated_at"].to_pydatetime()
-        if "last_sms_sent" in client_data_dict and client_data_dict["last_sms_sent"] and hasattr(client_data_dict["last_sms_sent"], 'to_pydatetime'):
-            client_data_dict["last_sms_sent"] = client_data_dict["last_sms_sent"].to_pydatetime()
+        if "created_at" in client_data_dict:
+            client_data_dict["created_at"] = convert_firebase_timestamp_to_naive(client_data_dict["created_at"])
+        if "updated_at" in client_data_dict:
+            client_data_dict["updated_at"] = convert_firebase_timestamp_to_naive(client_data_dict["updated_at"])
+        if "last_sms_sent" in client_data_dict:
+            client_data_dict["last_sms_sent"] = convert_firebase_timestamp_to_naive(client_data_dict["last_sms_sent"])
         
         # Upewnij się, że last_sms_sent istnieje
         if "last_sms_sent" not in client_data_dict:
@@ -799,12 +827,12 @@ async def get_clients(username: str):
             
             try:
                 # Konwertuj Firebase Timestamp na datetime
-                if "created_at" in client_data and hasattr(client_data["created_at"], 'to_pydatetime'):
-                    client_data["created_at"] = client_data["created_at"].to_pydatetime()
-                if "updated_at" in client_data and hasattr(client_data["updated_at"], 'to_pydatetime'):
-                    client_data["updated_at"] = client_data["updated_at"].to_pydatetime()
-                if "last_sms_sent" in client_data and client_data["last_sms_sent"] and hasattr(client_data["last_sms_sent"], 'to_pydatetime'):
-                    client_data["last_sms_sent"] = client_data["last_sms_sent"].to_pydatetime()
+                if "created_at" in client_data:
+                    client_data["created_at"] = convert_firebase_timestamp_to_naive(client_data["created_at"])
+                if "updated_at" in client_data:
+                    client_data["updated_at"] = convert_firebase_timestamp_to_naive(client_data["updated_at"])
+                if "last_sms_sent" in client_data:
+                    client_data["last_sms_sent"] = convert_firebase_timestamp_to_naive(client_data["last_sms_sent"])
                 
                 # Upewnij się, że wszystkie wymagane pola są obecne
                 if "note" not in client_data:
@@ -819,6 +847,10 @@ async def get_clients(username: str):
                     client_data["review_status"] = "not_sent"
                 if "last_sms_sent" not in client_data:
                     client_data["last_sms_sent"] = None
+                if "sms_count" not in client_data:
+                    client_data["sms_count"] = 0
+                if "source" not in client_data:
+                    client_data["source"] = "CRM"
                 
                 client_response = ClientResponse(**client_data)
                 clients.append(client_response)
@@ -899,12 +931,12 @@ async def update_client(username: str, client_id: str, client_data: ClientUpdate
         client_data_dict["id"] = updated_doc.id
         
         # Konwertuj Firebase Timestamp na datetime
-        if "created_at" in client_data_dict and hasattr(client_data_dict["created_at"], 'to_pydatetime'):
-            client_data_dict["created_at"] = client_data_dict["created_at"].to_pydatetime()
-        if "updated_at" in client_data_dict and hasattr(client_data_dict["updated_at"], 'to_pydatetime'):
-            client_data_dict["updated_at"] = client_data_dict["updated_at"].to_pydatetime()
-        if "last_sms_sent" in client_data_dict and client_data_dict["last_sms_sent"] and hasattr(client_data_dict["last_sms_sent"], 'to_pydatetime'):
-            client_data_dict["last_sms_sent"] = client_data_dict["last_sms_sent"].to_pydatetime()
+        if "created_at" in client_data_dict:
+            client_data_dict["created_at"] = convert_firebase_timestamp_to_naive(client_data_dict["created_at"])
+        if "updated_at" in client_data_dict:
+            client_data_dict["updated_at"] = convert_firebase_timestamp_to_naive(client_data_dict["updated_at"])
+        if "last_sms_sent" in client_data_dict:
+            client_data_dict["last_sms_sent"] = convert_firebase_timestamp_to_naive(client_data_dict["last_sms_sent"])
         
         # Upewnij się, że last_sms_sent istnieje
         if "last_sms_sent" not in client_data_dict:
@@ -1427,8 +1459,10 @@ async def client_login(username: str, client_data: ClientLoginRequest):
             "created_at": now,
             "updated_at": now,
             "status": "pending_review",
-            "owner_username": username,  # Dodaj informację o właścicielu
-            "last_sms_sent": None
+            "owner_username": username,
+            "last_sms_sent": None,
+            "sms_count": 0,
+            "source": "QR"
         }
         
         # Dodaj do kolekcji użytkownika
@@ -1474,6 +1508,10 @@ async def send_sms_to_client(username: str, client_id: str):
         client_phone = client_data.get("phone", "")
         client_name = client_data.get("name", "")
         review_code = client_data.get("review_code", "")
+        sms_count = client_data.get("sms_count", 0)
+        
+        if sms_count >= 2:
+            raise HTTPException(status_code=400, detail="Osiągnięto limit SMS dla tego klienta (maksymalnie 2 SMS)")
         
         if not client_phone:
             raise HTTPException(status_code=400, detail="Klient nie ma numeru telefonu")
@@ -1519,7 +1557,8 @@ Z poważaniem,
         doc_ref.update({
             "review_status": "sent",
             "last_sms_sent": now,
-            "updated_at": now
+            "updated_at": now,
+            "sms_count": sms_count + 1
         })
         
         print(f"✅ SMS wysłany do {client_name} ({client_phone})")
@@ -1699,6 +1738,7 @@ Z poważaniem,
             phone = client_data.get("phone", "")
             review_code = client_data.get("review_code", "")
             client_name = client_data.get("name", "")
+            sms_count = client_data.get("sms_count", 0)
             
             # Pomiń klientów bez numeru telefonu lub kodu recenzji
             if not phone or not review_code:
@@ -1706,6 +1746,10 @@ Z poważaniem,
             
             # Pomiń klientów którzy już ukończyli recenzję
             if review_status == "completed":
+                continue
+            
+            # Pomiń klientów którzy osiągnęli limit SMS
+            if sms_count >= 2:
                 continue
             
             clients_to_send.append({
@@ -1735,9 +1779,14 @@ Z poważaniem,
                 # Zaktualizuj status klienta
                 now = datetime.now()
                 doc_ref = db.collection(username).document(client['id'])
+                current_client = doc_ref.get()
+                current_data = current_client.to_dict()
+                current_sms_count = current_data.get("sms_count", 0)
+                
                 update_data = {
                     "last_sms_sent": now,
-                    "updated_at": now
+                    "updated_at": now,
+                    "sms_count": current_sms_count + 1
                 }
                 
                 # Jeśli to pierwszy SMS, zmień status na "sent"
@@ -1882,10 +1931,7 @@ async def get_user_statistics(username: str):
             updated_at = client.get("updated_at")
             if updated_at:
                 # Konwertuj Firebase Timestamp na datetime jeśli potrzeba
-                if hasattr(updated_at, 'to_pydatetime'):
-                    updated_at = updated_at.to_pydatetime()
-                elif isinstance(updated_at, str):
-                    updated_at = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+                updated_at = convert_firebase_timestamp_to_naive(updated_at)
                 
                 if updated_at.month == current_month and updated_at.year == current_year:
                     reviews_this_month += 1
@@ -1916,9 +1962,7 @@ async def get_user_statistics(username: str):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Błąd podczas pobierania statystyk: {str(e)}")
 
-# Uruchomienie serwera
 if __name__ == "__main__":
-    # Pobierz port z zmiennej środowiskowej (Render automatycznie ustawia PORT)
     port = int(os.getenv("PORT", 8000))
     
     print("🚀 Uruchamianie next review booster API...")
@@ -1926,13 +1970,12 @@ if __name__ == "__main__":
     print(f"🌐 API: http://0.0.0.0:{port}")
     print(f"📚 Dokumentacja: http://0.0.0.0:{port}/docs")
     print(f"❤️  Health Check: http://0.0.0.0:{port}/health")
-    
-    # Sprawdź czy jesteśmy w środowisku produkcyjnym
+
     is_production = os.getenv("ENVIRONMENT") == "production" or os.getenv("RENDER") == "true"
     
     uvicorn.run(
         "backend_main:app", 
         host="0.0.0.0", 
         port=port, 
-        reload=not is_production  # Tylko w trybie development
+        reload=not is_production  
     )

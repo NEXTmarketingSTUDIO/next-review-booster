@@ -19,17 +19,10 @@ const SettingsPage = () => {
     // Opcje wysyłki wiadomości
     messaging: {
       reminderFrequency: 7, // dni
-      messageTemplate: `Dzień dobry!
+      messageTemplate: `Bardzo prosimy o zostawienie opinii o naszych usługach: [LINK]
+Wasza opinia ma dla nas ogromne znaczenie i pomoże kolejnym klientom w wyborze.
 
-Chciałbym przypomnieć o możliwości wystawienia opinii o naszych usługach. 
-Wasza opinia jest dla nas bardzo ważna i pomoże innym klientom w podjęciu decyzji.
-
-Link do wystawienia opinii: [LINK]
-
-Z góry dziękuję za poświęcony czas!
-
-Z poważaniem,
-[NAZWA_FIRMY]`,
+Dziękujemy!`,
       autoSendEnabled: false
     },
     // Konfiguracja Twilio
@@ -95,6 +88,18 @@ Z poważaniem,
     e.preventDefault();
     if (!user?.email) return;
 
+    // Walidacja limitu znaków przed zapisem (sprawdź długość po podstawieniu zmiennych)
+    if (settings.messaging.messageTemplate) {
+      const processedMessage = settings.messaging.messageTemplate
+        .replace(/\[LINK\]/g, 'next-reviews-booster.com/review/vqyrdqrhf4')
+        .replace(/\[NAZWA_FIRMY\]/g, settings.userData.companyName || '[NAZWA_FIRMY]');
+      
+      if (processedMessage.length > 200) {
+        alert(`❌ Treść wiadomości po podstawieniu zmiennych nie może przekraczać 200 znaków! Aktualna długość: ${processedMessage.length} znaków.`);
+        return;
+      }
+    }
+
     try {
       setSaving(true);
       const username = user.email.split('@')[0];
@@ -111,6 +116,31 @@ Z poważaniem,
   };
 
   const handleInputChange = (section, field, value) => {
+    // Walidacja limitu znaków dla szablonu wiadomości (sprawdź długość po podstawieniu zmiennych)
+    if (section === 'messaging' && field === 'messageTemplate') {
+      // Podstaw zmienne na rzeczywiste wartości dla walidacji
+      const processedValue = value
+        .replace(/\[LINK\]/g, 'next-reviews-booster.com/review/vqyrdqrhf4')
+        .replace(/\[NAZWA_FIRMY\]/g, settings.userData.companyName || '[NAZWA_FIRMY]');
+      
+      // Jeśli wiadomość po podstawieniu przekracza 200 znaków, obetnij szablon
+      if (processedValue.length > 200) {
+        // Znajdź maksymalną długość szablonu, która po podstawieniu da 200 znaków
+        const linkLength = 'next-reviews-booster.com/review/vqyrdqrhf4'.length;
+        const companyNameLength = (settings.userData.companyName || '[NAZWA_FIRMY]').length;
+        
+        // Oblicz ile znaków można dodać do szablonu
+        const linkCount = (value.match(/\[LINK\]/g) || []).length;
+        const companyCount = (value.match(/\[NAZWA_FIRMY\]/g) || []).length;
+        
+        const maxTemplateLength = 200 - (linkCount * linkLength) - (companyCount * companyNameLength) + (linkCount * 6) + (companyCount * 12);
+        
+        if (value.length > maxTemplateLength) {
+          value = value.substring(0, maxTemplateLength);
+        }
+      }
+    }
+    
     setSettings(prev => ({
       ...prev,
       [section]: {
@@ -129,6 +159,45 @@ Z poważaniem,
       }
     }));
   };
+
+  // Funkcja kalkulacji kosztów SMS
+  const calculateSMSCost = (message) => {
+    if (!message || message.trim() === '') {
+      return { segments: 0, cost: 0, hasPolishChars: false };
+    }
+
+    // Podstaw zmienne na rzeczywiste wartości
+    const processedMessage = message
+      .replace(/\[LINK\]/g, 'next-reviews-booster.com/review/vqyrdqrhf4')
+      .replace(/\[NAZWA_FIRMY\]/g, settings.userData.companyName || '[NAZWA_FIRMY]');
+
+    // Sprawdź czy wiadomość zawiera polskie znaki
+    const polishCharsRegex = /[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/;
+    const hasPolishChars = polishCharsRegex.test(processedMessage);
+    
+    // Określ limit znaków na segment
+    const charsPerSegment = hasPolishChars ? 67 : 153;
+    
+    // Oblicz liczbę segmentów
+    const segments = Math.ceil(processedMessage.length / charsPerSegment);
+    
+    // Koszt za segment: $0.0431
+    const costPerSegment = 0.0431;
+    const totalCost = segments * costPerSegment;
+    
+    return {
+      segments,
+      cost: totalCost,
+      hasPolishChars,
+      charsPerSegment,
+      messageLength: processedMessage.length,
+      originalLength: message.length,
+      processedMessage
+    };
+  };
+
+  // Oblicz koszt dla aktualnej wiadomości
+  const smsCost = calculateSMSCost(settings.messaging.messageTemplate);
 
 
   if (loading) {
@@ -276,6 +345,57 @@ Z poważaniem,
                 rows="12"
                 placeholder="Wprowadź treść wiadomości..."
               />
+              <div className="character-count">
+                <span className={`count ${smsCost.messageLength > 200 ? 'over-limit' : smsCost.messageLength > 180 ? 'near-limit' : ''}`}>
+                  {smsCost.messageLength}/200 znaków
+                </span>
+              </div>
+              {/* Kalkulator kosztów SMS */}
+              <div className="sms-cost-calculator">
+                <div className="cost-summary">
+                  <div className="cost-item">
+                    <span className="cost-label">Długość po wiadomości finałowej:</span>
+                    <span className="cost-value">{smsCost.messageLength} znaków</span>
+                  </div>
+                  <div className="cost-item">
+                    <span className="cost-label">Polskie znaki:</span>
+                    <span className={`cost-value ${smsCost.hasPolishChars ? 'has-polish' : 'no-polish'}`}>
+                      {smsCost.hasPolishChars ? 'Tak' : 'Nie'}
+                    </span>
+                  </div>
+                  <div className="cost-item">
+                    <span className="cost-label">Limit na segment:</span>
+                    <span className="cost-value">{smsCost.charsPerSegment} znaków</span>
+                  </div>
+                  <div className="cost-item">
+                    <span className="cost-label">Liczba segmentów:</span>
+                    <span className="cost-value">{smsCost.segments}</span>
+                  </div>
+                  <div className="cost-item total-cost">
+                    <span className="cost-label">Koszt SMS:</span>
+                    <span className="cost-value">${smsCost.cost.toFixed(4)}</span>
+                  </div>
+                </div>
+                <div className="cost-breakdown">
+                  <small>
+                    {smsCost.segments === 1 ? (
+                      <>1 segment × $0.0431 = ${smsCost.cost.toFixed(4)}</>
+                    ) : (
+                      <>{smsCost.segments} segmenty × $0.0431 = ${smsCost.cost.toFixed(4)}</>
+                    )}
+                  </small>
+                </div>
+                {smsCost.originalLength !== smsCost.messageLength && (
+                  <div className="message-preview">
+                    <details>
+                      <summary>Podgląd wiadomości po podstawieniu zmiennych</summary>
+                      <div className="preview-content">
+                        <pre>{smsCost.processedMessage}</pre>
+                      </div>
+                    </details>
+                  </div>
+                )}
+              </div>
               <small className="help-text">
                 Dostępne zmienne: [LINK] - link do opinii, [NAZWA_FIRMY] - nazwa Twojej firmy
               </small>
