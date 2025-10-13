@@ -8,7 +8,8 @@ const ClientLoginPage = () => {
   const { username } = useParams();
   const [formData, setFormData] = useState({
     name: '',
-    phone: ''
+    phone: '',
+    countryCode: '+48'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,6 +29,12 @@ const ClientLoginPage = () => {
       setError('Proszę wypełnić wszystkie pola');
       return;
     }
+    
+    // Przygotuj dane z połączonym numerem telefonu
+    const clientData = {
+      name: formData.name,
+      phone: `${formData.countryCode}${formData.phone}`
+    };
 
     if (formData.phone.length < 9) {
       setError('Numer telefonu musi mieć co najmniej 9 cyfr');
@@ -44,7 +51,7 @@ const ClientLoginPage = () => {
         return;
       }
       
-      const data = await apiService.clientLogin(username, formData);
+      const data = await apiService.clientLogin(username, clientData);
       
       // Przekieruj do formularza recenzji
       navigate(`/review/${data.review_code}`);
@@ -83,15 +90,43 @@ const ClientLoginPage = () => {
 
             <div className="form-group">
               <label htmlFor="phone">Numer telefonu *</label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                placeholder="Wprowadź numer telefonu"
-                required
-              />
+              <div className="phone-input-container">
+                <select
+                  name="countryCode"
+                  value={formData.countryCode}
+                  onChange={handleInputChange}
+                  className="country-code-select"
+                >
+                  <option value="+48">🇵🇱 +48</option>
+                  <option value="+49">🇩🇪 +49</option>
+                  <option value="+420">🇨🇿 +420</option>
+                  <option value="+421">🇸🇰 +421</option>
+                  <option value="+44">🇬🇧 +44</option>
+                  <option value="+33">🇫🇷 +33</option>
+                  <option value="+39">🇮🇹 +39</option>
+                  <option value="+34">🇪🇸 +34</option>
+                  <option value="+31">🇳🇱 +31</option>
+                  <option value="+32">🇧🇪 +32</option>
+                  <option value="+43">🇦🇹 +43</option>
+                  <option value="+41">🇨🇭 +41</option>
+                  <option value="+45">🇩🇰 +45</option>
+                  <option value="+46">🇸🇪 +46</option>
+                  <option value="+47">🇳🇴 +47</option>
+                  <option value="+358">🇫🇮 +358</option>
+                  <option value="+1">🇺🇸 +1</option>
+                  <option value="+7">🇷🇺 +7</option>
+                </select>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  placeholder="123456789"
+                  className="phone-number-input"
+                  required
+                />
+              </div>
             </div>
 
             {error && (

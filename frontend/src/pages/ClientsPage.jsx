@@ -10,6 +10,7 @@ const ClientsPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [expandedReviews, setExpandedReviews] = useState(new Set());
+  const [expandedClients, setExpandedClients] = useState(new Set());
   const [sendingSMS, setSendingSMS] = useState(new Set());
   const [sendingToAll, setSendingToAll] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -17,8 +18,17 @@ const ClientsPage = () => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
+    countryCode: '+48',
     note: ''
   });
+  const [filters, setFilters] = useState({
+    search: '',
+    source: 'all',
+    smsStatus: 'all',
+    rating: 'all',
+    hasReview: 'all'
+  });
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     if (user?.email) {
@@ -112,18 +122,25 @@ const ClientsPage = () => {
     try {
       const username = user.email.split('@')[0];
       
+      // Przygotuj dane z połączonym numerem telefonu
+      const clientData = {
+        ...formData,
+        phone: combinePhoneNumber(formData.countryCode, formData.phone)
+      };
+      
       if (editingClient) {
         // Edytuj istniejącego klienta
-        await apiService.updateClient(username, editingClient.id, formData);
+        await apiService.updateClient(username, editingClient.id, clientData);
       } else {
         // Dodaj nowego klienta
-        await apiService.createClient(username, formData);
+        await apiService.createClient(username, clientData);
       }
 
       // Resetuj formularz
       setFormData({
         name: '',
         phone: '',
+        countryCode: '+48',
         note: ''
       });
       setShowForm(false);
@@ -136,9 +153,12 @@ const ClientsPage = () => {
 
   const handleEdit = (client) => {
     setEditingClient(client);
+    // Parsuj numer telefonu, aby wyodrębnić kod kraju i numer
+    const phoneData = parsePhoneNumber(client.phone || '');
     setFormData({
       name: client.name || '',
-      phone: client.phone || '',
+      phone: phoneData.number || '',
+      countryCode: phoneData.countryCode || '+48',
       note: client.note || ''
     });
     setShowForm(true);
@@ -165,6 +185,99 @@ const ClientsPage = () => {
     });
   };
 
+  // Funkcja do parsowania numeru telefonu
+  const parsePhoneNumber = (fullPhone) => {
+    if (!fullPhone) return { countryCode: '+48', number: '' };
+    
+    // Sprawdź czy numer zaczyna się od + (ma kod kraju)
+    if (fullPhone.startsWith('+')) {
+      // Znajdź gdzie kończy się kod kraju (2-4 cyfry po +)
+      const match = fullPhone.match(/^(\+\d{1,4})(.*)$/);
+      if (match) {
+        return {
+          countryCode: match[1],
+          number: match[2].trim()
+        };
+      }
+    }
+    
+    // Jeśli nie ma kodu kraju, założ że to polski numer
+    return {
+      countryCode: '+48',
+      number: fullPhone
+    };
+  };
+
+  // Funkcja do łączenia kodu kraju z numerem
+  const combinePhoneNumber = (countryCode, number) => {
+    if (!number) return '';
+    return `${countryCode}${number}`;
+  };
+
+  // Funkcje do obsługi filtrów
+  const handleFilterChange = (filterName, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterName]: value
+    }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      search: '',
+      source: 'all',
+      smsStatus: 'all',
+      rating: 'all',
+      hasReview: 'all'
+    });
+  };
+
+  // Funkcja filtrowania klientów
+  const getFilteredClients = () => {
+    if (!clients) return [];
+
+    return clients.filter(client => {
+      // Filtrowanie po wyszukiwaniu
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase();
+        const matchesSearch = 
+          client.name?.toLowerCase().includes(searchTerm) ||
+          client.phone?.includes(searchTerm) ||
+          client.note?.toLowerCase().includes(searchTerm) ||
+          client.review?.toLowerCase().includes(searchTerm);
+        
+        if (!matchesSearch) return false;
+      }
+
+      // Filtrowanie po źródle pochodzenia
+      if (filters.source !== 'all') {
+        if (client.source !== filters.source) return false;
+      }
+
+      // Filtrowanie po statusie SMS
+      if (filters.smsStatus !== 'all') {
+        if (filters.smsStatus === 'sent' && client.sms_count === 0) return false;
+        if (filters.smsStatus === 'not_sent' && client.sms_count > 0) return false;
+        if (filters.smsStatus === 'limit_reached' && client.sms_count < 2) return false;
+      }
+
+      // Filtrowanie po ocenie
+      if (filters.rating !== 'all') {
+        if (filters.rating === 'no_rating' && client.stars > 0) return false;
+        if (filters.rating === 'has_rating' && client.stars === 0) return false;
+        if (filters.rating === 'high_rating' && client.stars < 4) return false;
+      }
+
+      // Filtrowanie po recenzji
+      if (filters.hasReview !== 'all') {
+        if (filters.hasReview === 'has_review' && !client.review) return false;
+        if (filters.hasReview === 'no_review' && client.review) return false;
+      }
+
+      return true;
+    });
+  };
+
   const copyReviewCode = async (code) => {
     try {
       await navigator.clipboard.writeText(code);
@@ -184,6 +297,18 @@ const ClientsPage = () => {
 
   const toggleReviewExpansion = (clientId) => {
     setExpandedReviews(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(clientId)) {
+        newSet.delete(clientId);
+      } else {
+        newSet.add(clientId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleClientExpansion = (clientId) => {
+    setExpandedClients(prev => {
       const newSet = new Set(prev);
       if (newSet.has(clientId)) {
         newSet.delete(clientId);
@@ -238,7 +363,8 @@ const ClientsPage = () => {
     }
 
     // Sprawdź czy są klienci do wysłania
-    const clientsToSend = clients.filter(client => 
+    const filteredClients = getFilteredClients();
+    const clientsToSend = filteredClients.filter(client => 
       client.phone && 
       client.review_code && 
       client.review_status !== 'completed' &&
@@ -292,6 +418,7 @@ const ClientsPage = () => {
                     setFormData({
                       name: '',
                       phone: '',
+                      countryCode: '+48',
                       note: ''
                     });
                   }}
@@ -316,13 +443,42 @@ const ClientsPage = () => {
 
                 <div className="form-group">
                   <label htmlFor="phone">Telefon</label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                  />
+                  <div className="phone-input-container">
+                    <select
+                      name="countryCode"
+                      value={formData.countryCode}
+                      onChange={handleInputChange}
+                      className="country-code-select"
+                    >
+                      <option value="+48">🇵🇱 +48</option>
+                      <option value="+49">🇩🇪 +49</option>
+                      <option value="+420">🇨🇿 +420</option>
+                      <option value="+421">🇸🇰 +421</option>
+                      <option value="+44">🇬🇧 +44</option>
+                      <option value="+33">🇫🇷 +33</option>
+                      <option value="+39">🇮🇹 +39</option>
+                      <option value="+34">🇪🇸 +34</option>
+                      <option value="+31">🇳🇱 +31</option>
+                      <option value="+32">🇧🇪 +32</option>
+                      <option value="+43">🇦🇹 +43</option>
+                      <option value="+41">🇨🇭 +41</option>
+                      <option value="+45">🇩🇰 +45</option>
+                      <option value="+46">🇸🇪 +46</option>
+                      <option value="+47">🇳🇴 +47</option>
+                      <option value="+358">🇫🇮 +358</option>
+                      <option value="+1">🇺🇸 +1</option>
+                      <option value="+7">🇷🇺 +7</option>
+                    </select>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      placeholder="123456789"
+                      className="phone-number-input"
+                    />
+                  </div>
                 </div>
 
 
@@ -351,8 +507,104 @@ const ClientsPage = () => {
           </div>
         )}
 
+        {/* Filtry klientów */}
+        <div className="clients-filters">
+          <div className="filters-header">
+            <h3>Filtry</h3>
+            <button 
+              className="toggle-filters-btn"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              {showFilters ? 'Ukryj filtry' : 'Pokaż filtry'}
+              <span className={`filter-icon ${showFilters ? 'expanded' : ''}`}>▼</span>
+            </button>
+          </div>
+          
+          {showFilters && (
+            <div className="filters-content">
+              <div className="filter-row">
+                <div className="filter-group">
+                  <label htmlFor="search">Wyszukaj:</label>
+                  <input
+                    type="text"
+                    id="search"
+                    placeholder="Imię, telefon, notatka, recenzja..."
+                    value={filters.search}
+                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                  />
+                </div>
+                
+                <div className="filter-group">
+                  <label htmlFor="source">Źródło:</label>
+                  <select
+                    id="source"
+                    value={filters.source}
+                    onChange={(e) => handleFilterChange('source', e.target.value)}
+                  >
+                    <option value="all">Wszystkie</option>
+                    <option value="CRM">CRM</option>
+                    <option value="QR">QR</option>
+                  </select>
+                </div>
+                
+                <div className="filter-group">
+                  <label htmlFor="smsStatus">Status SMS:</label>
+                  <select
+                    id="smsStatus"
+                    value={filters.smsStatus}
+                    onChange={(e) => handleFilterChange('smsStatus', e.target.value)}
+                  >
+                    <option value="all">Wszystkie</option>
+                    <option value="not_sent">Nie wysłano</option>
+                    <option value="sent">Wysłano</option>
+                    <option value="limit_reached">Limit osiągnięty</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="filter-row">
+                <div className="filter-group">
+                  <label htmlFor="rating">Ocena:</label>
+                  <select
+                    id="rating"
+                    value={filters.rating}
+                    onChange={(e) => handleFilterChange('rating', e.target.value)}
+                  >
+                    <option value="all">Wszystkie</option>
+                    <option value="no_rating">Brak oceny</option>
+                    <option value="has_rating">Ma ocenę</option>
+                    <option value="high_rating">Wysoka ocena (4-5)</option>
+                  </select>
+                </div>
+                
+                <div className="filter-group">
+                  <label htmlFor="hasReview">Recenzja:</label>
+                  <select
+                    id="hasReview"
+                    value={filters.hasReview}
+                    onChange={(e) => handleFilterChange('hasReview', e.target.value)}
+                  >
+                    <option value="all">Wszystkie</option>
+                    <option value="no_review">Brak recenzji</option>
+                    <option value="has_review">Ma recenzję</option>
+                  </select>
+                </div>
+                
+                <div className="filter-actions">
+                  <button 
+                    className="btn btn-secondary"
+                    onClick={clearFilters}
+                  >
+                    Wyczyść filtry
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Przycisk wysyłania do wszystkich klientów */}
-        {clients.length > 0 && (
+        {getFilteredClients().length > 0 && (
           <div className="clients-header-actions">
             <button 
               className={`btn-test-send ${sendingToAll ? 'loading' : ''}`}
@@ -390,103 +642,229 @@ const ClientsPage = () => {
               <p>Dodaj pierwszego klienta, aby rozpocząć zarządzanie bazą danych</p>
             </div>
           ) : (
-            <div className="clients-table-container">
-              <table className="clients-table">
-                <thead>
-                  <tr>
-                    <th>Imię</th>
-                    <th>Telefon</th>
-                    {/* <th>Notatka</th> */}
-                    <th>Ocena</th>
-                    <th>Recenzja</th>
-                    <th>SMS (Limit)</th>
-                    <th>Źródło</th>
-                    <th>Data utworzenia</th>
-                    <th>Data ostatniego SMS</th>
-                    <th>Akcje</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {clients.map((client) => (
-                    <tr key={client.id} className="client-row">
-                      <td className="client-name">
-                        <strong>{client.name}</strong>
-                      </td>
-                      <td className="client-phone">
-                        {client.phone || '-'}
-                      </td>
-                      {/* <td className="client-note">
-                        {client.note ? (
-                          <span className="note-text" title={client.note}>
-                            {client.note.length > 50 
-                              ? `${client.note.substring(0, 50)}...` 
-                              : client.note
-                            }
-                          </span>
-                        ) : '-'}
-                      </td> */}
-                      <td className="client-stars">
-                        {client.stars > 0 ? (
-                          <span className="stars-display">
-                            {'★'.repeat(client.stars)}{'☆'.repeat(5 - client.stars)}
-                            <span className="stars-count">({client.stars}/5)</span>
-                          </span>
-                        ) : (
-                          <span className="no-rating">Brak oceny</span>
-                        )}
-                      </td>
-                      <td className="client-review">
-                        {client.review ? (
-                          <div className="review-container">
-                            <span className="review-text">
-                              {expandedReviews.has(client.id) 
-                                ? client.review 
-                                : client.review.length > 30 
-                                  ? `${client.review.substring(0, 30)}...` 
-                                  : client.review
-                              }
+            <>
+              {/* Tabela dla desktop */}
+              <div className="clients-table-container desktop-only">
+                <table className="clients-table">
+                  <thead>
+                    <tr>
+                      <th>Imię</th>
+                      <th>Telefon</th>
+                      <th>Ocena</th>
+                      <th>Recenzja</th>
+                      <th>Data ostatniego SMS</th>
+                      <th>Akcje</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getFilteredClients().map((client) => (
+                      <React.Fragment key={client.id}>
+                        <tr className="client-row">
+                        <td className="client-name">
+                          <button 
+                            className="expand-client-btn"
+                            onClick={() => toggleClientExpansion(client.id)}
+                            title={expandedClients.has(client.id) ? "Zwiń szczegóły" : "Rozwiń szczegóły"}
+                          >
+                            <span className={`expand-icon ${expandedClients.has(client.id) ? 'expanded' : ''}`}>
+                              ▼
                             </span>
-                            {client.review.length > 30 && (
-                              <button 
-                                className="expand-review-btn"
-                                onClick={() => toggleReviewExpansion(client.id)}
-                                title={expandedReviews.has(client.id) ? "Zwiń recenzję" : "Rozwiń recenzję"}
-                              >
-                                {expandedReviews.has(client.id) ? "Zwiń" : "Rozwiń"}
-                              </button>
+                            <strong>{client.name}</strong>
+                          </button>
+                        </td>
+                        <td className="client-phone">
+                          {client.phone || '-'}
+                        </td>
+                        <td className="client-stars">
+                          {client.stars > 0 ? (
+                            <span className="stars-display">
+                              {'★'.repeat(client.stars)}{'☆'.repeat(5 - client.stars)}
+                              <span className="stars-count">({client.stars}/5)</span>
+                            </span>
+                          ) : (
+                            <span className="no-rating">Brak oceny</span>
+                          )}
+                        </td>
+                        <td className="client-review">
+                          {client.review ? (
+                            <div className="review-container">
+                              <span className="review-text">
+                                {expandedReviews.has(client.id) 
+                                  ? client.review 
+                                  : client.review.length > 30 
+                                    ? `${client.review.substring(0, 30)}...` 
+                                    : client.review
+                                }
+                              </span>
+                              {client.review.length > 30 && (
+                                <button 
+                                  className="expand-review-btn"
+                                  onClick={() => toggleReviewExpansion(client.id)}
+                                  title={expandedReviews.has(client.id) ? "Zwiń recenzję" : "Rozwiń recenzję"}
+                                >
+                                  {expandedReviews.has(client.id) ? "Zwiń" : "Rozwiń"}
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="no-review">Brak recenzji</span>
+                          )}
+                        </td>
+                        <td className="client-last-sms">
+                          {client.last_sms_sent ?
+                            (typeof client.last_sms_sent === 'string' 
+                              ? new Date(client.last_sms_sent).toLocaleDateString('pl-PL')
+                              : client.last_sms_sent.toLocaleDateString('pl-PL')
+                            ) : 'Nieznana data'
+                          }
+                        </td>
+                        <td className="client-actions">
+                          <div className="burger-menu">
+                            <button 
+                              className="burger-btn"
+                              data-client-id={client.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleBurgerMenu(client.id);
+                              }}
+                              title="Menu akcji"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="1"></circle>
+                                <circle cx="19" cy="12" r="1"></circle>
+                                <circle cx="5" cy="12" r="1"></circle>
+                              </svg>
+                            </button>
+                            
+                            {openMenuId === client.id && (
+                              <div className="burger-menu-content">
+                                {client.phone && (
+                                  <button 
+                                    className={`menu-item sms-item ${sendingSMS.has(client.id) ? 'loading' : ''} ${client.sms_count >= 2 ? 'disabled' : ''}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSendSMS(client);
+                                      setOpenMenuId(null);
+                                    }}
+                                    disabled={sendingSMS.has(client.id) || client.sms_count >= 2}
+                                    title={client.sms_count >= 2 ? `Limit SMS osiągnięty (${client.sms_count}/2)` : 'Wyślij SMS'}
+                                  >
+                                    {sendingSMS.has(client.id) ? (
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="loading-icon">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <path d="M12 6v6l4 2"></path>
+                                      </svg>
+                                    ) : (
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect>
+                                        <path d="M12 18h.01"></path>
+                                      </svg>
+                                    )}
+                                    <span>{client.sms_count >= 2 ? 'SMS (Limit)' : 'SMS'}</span>
+                                  </button>
+                                )}
+                                
+                                <button 
+                                  className="menu-item edit-item"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEdit(client);
+                                    setOpenMenuId(null);
+                                  }}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                  </svg>
+                                  <span>Edytuj</span>
+                                </button>
+                                
+                                <button 
+                                  className="menu-item delete-item"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(client.id);
+                                    setOpenMenuId(null);
+                                  }}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="3,6 5,6 21,6"></polyline>
+                                    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                                    <line x1="10" x2="10" y1="11" y2="17"></line>
+                                    <line x1="14" x2="14" y1="11" y2="17"></line>
+                                  </svg>
+                                  <span>Usuń</span>
+                                </button>
+                              </div>
                             )}
                           </div>
-                        ) : (
-                          <span className="no-review">Brak recenzji</span>
-                        )}
-                      </td>
-                      <td className="client-sms-count">
-                        <span className={`sms-counter ${client.sms_count >= 2 ? 'limit-reached' : client.sms_count > 0 ? 'has-sms' : ''}`}>
-                          {client.sms_count}/2
-                        </span>
-                      </td>
-                      <td className="client-source">
-                        <span className={`source-badge ${client.source === 'QR' ? 'source-qr' : 'source-crm'}`}>
-                          {client.source || 'CRM'}
-                        </span>
-                      </td>
-                      <td className="client-date">
-                        {client.created_at ? 
-                          (typeof client.created_at === 'string' 
-                            ? new Date(client.created_at).toLocaleDateString('pl-PL')
-                            : client.created_at.toLocaleDateString('pl-PL')
-                          ) : 'Nieznana data'
-                        }
-                      </td>
-                      <td className="client-last-sms">
-                        {client.last_sms_sent ?
-                          (typeof client.last_sms_sent === 'string' 
-                            ? new Date(client.last_sms_sent).toLocaleDateString('pl-PL')
-                            : client.last_sms_sent.toLocaleDateString('pl-PL')
-                          ) : 'Nieznana data'
-                        }
-                      </td>
-                      <td className="client-actions">
+                        </td>
+                      </tr>
+                      
+                      {/* Rozwijany wiersz z dodatkowymi informacjami */}
+                      {expandedClients.has(client.id) && (
+                        <tr className="client-details-row">
+                          <td colSpan="6" className="client-details-cell">
+                            <div className="client-details-content">
+                              <div className="details-grid">
+                                <div className="detail-item">
+                                  <label>Notatki:</label>
+                                  <span className="detail-value">
+                                    {client.note || 'Brak notatek'}
+                                  </span>
+                                </div>
+                                <div className="detail-item">
+                                  <label>Źródło pochodzenia:</label>
+                                  <span className={`source-badge ${client.source === 'QR' ? 'source-qr' : 'source-crm'}`}>
+                                    {client.source || 'CRM'}
+                                  </span>
+                                </div>
+                                <div className="detail-item">
+                                  <label>Limit SMS:</label>
+                                  <span className={`sms-counter ${client.sms_count >= 2 ? 'limit-reached' : client.sms_count > 0 ? 'has-sms' : ''}`}>
+                                    {client.sms_count}/2
+                                  </span>
+                                </div>
+                                <div className="detail-item">
+                                  <label>Data utworzenia:</label>
+                                  <span className="detail-value">
+                                    {client.created_at ? 
+                                      (typeof client.created_at === 'string' 
+                                        ? new Date(client.created_at).toLocaleDateString('pl-PL')
+                                        : client.created_at.toLocaleDateString('pl-PL')
+                                      ) : 'Nieznana data'
+                                    }
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Karty dla mobile */}
+              <div className="clients-cards-container mobile-only">
+                {getFilteredClients().map((client) => (
+                  <div key={client.id} className="client-card">
+                    <div className="client-card-header">
+                      <div className="client-card-name">
+                        <button 
+                          className="expand-client-btn-mobile"
+                          onClick={() => toggleClientExpansion(client.id)}
+                          title={expandedClients.has(client.id) ? "Zwiń szczegóły" : "Rozwiń szczegóły"}
+                        >
+                          <span className={`expand-icon ${expandedClients.has(client.id) ? 'expanded' : ''}`}>
+                            ▼
+                          </span>
+                          <strong>{client.name}</strong>
+                        </button>
+                      </div>
+                      <div className="client-card-actions">
                         <div className="burger-menu">
                           <button 
                             className="burger-btn"
@@ -566,12 +944,87 @@ const ClientsPage = () => {
                             </div>
                           )}
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                    </div>
+                    
+                    <div className="client-card-body">
+                      <div className="client-card-phone">
+                        {client.phone || '-'}
+                      </div>
+                      <div className="client-card-review">
+                        {client.review ? (
+                          <span className="review-text">
+                            {client.review.length > 30 
+                              ? `${client.review.substring(0, 30)}...` 
+                              : client.review
+                            }
+                          </span>
+                        ) : (
+                          <span className="no-review">Brak recenzji</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="client-card-footer">
+                      <div className="client-card-stars">
+                        {client.stars > 0 ? (
+                          <span className="stars-display">
+                            {'★'.repeat(client.stars)}{'☆'.repeat(5 - client.stars)}
+                          </span>
+                        ) : (
+                          <span className="no-rating">Brak oceny</span>
+                        )}
+                      </div>
+                      <div className="client-card-date">
+                        {client.last_sms_sent ? 
+                          (typeof client.last_sms_sent === 'string' 
+                            ? new Date(client.last_sms_sent).toLocaleDateString('pl-PL')
+                            : client.last_sms_sent.toLocaleDateString('pl-PL')
+                          ) : 'Brak wysłanego SMS '
+                        }
+                      </div>
+                    </div>
+                    
+                    {/* Rozwijana sekcja z dodatkowymi informacjami dla mobile */}
+                    {expandedClients.has(client.id) && (
+                      <div className="client-card-details-mobile">
+                        <div className="details-grid-mobile">
+                          <div className="detail-item-mobile">
+                            <label>Notatki:</label>
+                            <span className="detail-value">
+                              {client.note || 'Brak notatek'}
+                            </span>
+                          </div>
+                          <div className="detail-item-mobile">
+                            <label>Źródło pochodzenia:</label>
+                            <span className={`source-badge ${client.source === 'QR' ? 'source-qr' : 'source-crm'}`}>
+                              {client.source || 'CRM'}
+                            </span>
+                          </div>
+                          <div className="detail-item-mobile">
+                            <label>Limit SMS:</label>
+                            <span className={`sms-counter ${client.sms_count >= 2 ? 'limit-reached' : client.sms_count > 0 ? 'has-sms' : ''}`}>
+                              {client.sms_count}/2
+                            </span>
+                          </div>
+                          <div className="detail-item-mobile">
+                            <label>Data utworzenia:</label>
+                            <span className="detail-value">
+                              {client.created_at ? 
+                                (typeof client.created_at === 'string' 
+                                  ? new Date(client.created_at).toLocaleDateString('pl-PL')
+                                  : client.created_at.toLocaleDateString('pl-PL')
+                                ) : 'Nieznana data'
+                              }
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>

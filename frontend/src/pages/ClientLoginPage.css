@@ -69,9 +69,60 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #fca212;
   background: white;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Style dla selektora kodu kraju */
+.phone-input-container {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.country-code-select {
+  flex: 0 0 auto;
+  min-width: 120px;
+  padding: 0.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 1rem;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.country-code-select:focus {
+  outline: none;
+  border-color: #fca212;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.country-code-select:hover {
+  border-color: #d1d5db;
+}
+
+.phone-number-input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 1rem;
+  background: white;
+  color: #374151;
+  transition: all 0.2s ease;
+}
+
+.phone-number-input:focus {
+  outline: none;
+  border-color: #fca212;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.phone-number-input:hover {
+  border-color: #d1d5db;
 }
 
 .form-group input::placeholder {
