@@ -286,7 +286,6 @@ export const apiService = {
     }
   },
 
-  // Endpoint do pobierania statystyk użytkownika
   async getUserStatistics(username) {
     console.log('📊 API: Pobieranie statystyk dla:', username);
     try {
@@ -312,6 +311,54 @@ export const apiService = {
     }
   },
 
+  async get(url) {
+    console.log('🌐 API: GET request:', url);
+    try {
+      const response = await api.get(url);
+      console.log('✅ API: GET response:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ API: GET error:', error);
+      throw error;
+    }
+  },
+
+  async post(url, data) {
+    console.log('🌐 API: POST request:', url, data);
+    try {
+      const response = await api.post(url, data);
+      console.log('✅ API: POST response:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ API: POST error:', error);
+      throw error;
+    }
+  },
+
+  async put(url, data) {
+    console.log('🌐 API: PUT request:', url, data);
+    try {
+      const response = await api.put(url, data);
+      console.log('✅ API: PUT response:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ API: PUT error:', error);
+      throw error;
+    }
+  },
+
+  async delete(url) {
+    console.log('🌐 API: DELETE request:', url);
+    try {
+      const response = await api.delete(url);
+      console.log('✅ API: DELETE response:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ API: DELETE error:', error);
+      throw error;
+    }
+  },
+
 };
 
-export default api;
+export default apiService;

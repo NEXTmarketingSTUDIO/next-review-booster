@@ -218,6 +218,28 @@
   min-height: 120px;
 }
 
+/* Wskaźnik liczby znaków */
+.character-count {
+  text-align: right;
+  margin-top: 0.5rem;
+}
+
+.character-count .count {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.character-count .count.near-limit {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.character-count .count.over-limit {
+  color: #dc2626;
+  font-weight: 700;
+}
+
 .help-text {
   margin-top: 0.5rem;
   color: #666;
@@ -237,6 +259,7 @@
   background: #e0e0e0;
   outline: none;
   -webkit-appearance: none;
+  appearance: none;
   margin-bottom: 0.5rem;
 }
 
@@ -412,6 +435,158 @@
   color: var(--logo-yellow-end);
 }
 
+/* Kalkulator kosztów SMS */
+.sms-cost-calculator {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.cost-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.cost-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.cost-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.cost-item.total-cost {
+  background: linear-gradient(135deg, #fca212, #ff8c00);
+  color: white;
+  border: none;
+  font-weight: 600;
+  grid-column: 1 / -1;
+}
+
+.cost-item.total-cost:hover {
+  background: linear-gradient(135deg, #e6950f, #e67e00);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(252, 162, 18, 0.3);
+}
+
+.cost-label {
+  font-weight: 500;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.cost-item.total-cost .cost-label {
+  color: white;
+  font-weight: 600;
+}
+
+.cost-value {
+  font-weight: 600;
+  color: #212529;
+  font-size: 0.95rem;
+}
+
+.cost-value.has-polish {
+  color: #dc3545;
+  background: #f8d7da;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.cost-value.no-polish {
+  color: #28a745;
+  background: #d4edda;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.cost-item.total-cost .cost-value {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.cost-breakdown {
+  text-align: center;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  margin-top: 0.5rem;
+}
+
+.cost-breakdown small {
+  color: #6c757d;
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+/* Podgląd wiadomości */
+.message-preview {
+  margin-top: 1rem;
+  border-top: 1px solid #e9ecef;
+  padding-top: 1rem;
+}
+
+.message-preview details {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.message-preview summary {
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  cursor: pointer;
+  font-weight: 500;
+  color: #495057;
+  border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.3s ease;
+}
+
+.message-preview summary:hover {
+  background: #e9ecef;
+}
+
+.message-preview summary::-webkit-details-marker {
+  color: #fca212;
+}
+
+.preview-content {
+  padding: 1rem;
+  background: white;
+}
+
+.preview-content pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #495057;
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
 /* Checkbox styles */
 .checkbox-label {
   display: flex;
@@ -446,4 +621,21 @@
     align-self: flex-start;
   }
   
+  /* Responsywność kalkulatora kosztów */
+  .sms-cost-calculator {
+    padding: 1rem;
+  }
+  
+  .cost-summary {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .cost-item {
+    padding: 0.6rem;
+  }
+  
+  .cost-item.total-cost {
+    grid-column: 1;
+  }
 }

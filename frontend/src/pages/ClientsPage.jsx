@@ -13,6 +13,7 @@ const ClientsPage = () => {
   const [sendingSMS, setSendingSMS] = useState(new Set());
   const [sendingToAll, setSendingToAll] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [openMenuId, setOpenMenuId] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -39,6 +40,47 @@ const ClientsPage = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Zamykanie menu po kliknięciu poza nim
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (openMenuId && !event.target.closest('.burger-menu')) {
+        setOpenMenuId(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [openMenuId]);
+
+  // Pozycjonowanie menu po otwarciu
+  useEffect(() => {
+    if (openMenuId) {
+      const menu = document.querySelector('.burger-menu-content');
+      const button = document.querySelector(`[data-client-id="${openMenuId}"]`);
+      
+      if (menu && button) {
+        const rect = button.getBoundingClientRect();
+        
+        // Pozycjonuj menu nad przyciskiem
+        let top = rect.top - menu.offsetHeight - 5;
+        let left = rect.right - menu.offsetWidth;
+        
+        // Jeśli menu wychodzi poza lewą krawędź ekranu, wyrównaj do lewej strony przycisku
+        if (left < 10) {
+          left = rect.left;
+        }
+        
+        // Jeśli menu wychodzi poza górną krawędź ekranu, pokaż poniżej przycisku
+        if (top < 10) {
+          top = rect.bottom + 5;
+        }
+        
+        menu.style.top = `${top}px`;
+        menu.style.left = `${left}px`;
+      }
+    }
+  }, [openMenuId]);
 
   const fetchClients = async () => {
     if (!user?.email) {
@@ -158,6 +200,11 @@ const ClientsPage = () => {
       return;
     }
 
+    if (client.sms_count >= 2) {
+      alert('❌ Osiągnięto limit SMS dla tego klienta (maksymalnie 2 SMS)');
+      return;
+    }
+
     if (window.confirm(`Czy chcesz wysłać SMS do ${client.name} (${client.phone})?`)) {
       try {
         setSendingSMS(prev => new Set(prev).add(client.id));
@@ -180,6 +227,10 @@ const ClientsPage = () => {
     }
   };
 
+  const toggleBurgerMenu = (clientId) => {
+    setOpenMenuId(openMenuId === clientId ? null : clientId);
+  };
+
   const handleSendSMSToAll = async () => {
     if (!user?.email) {
       alert('❌ Nie jesteś zalogowany');
@@ -190,15 +241,16 @@ const ClientsPage = () => {
     const clientsToSend = clients.filter(client => 
       client.phone && 
       client.review_code && 
-      client.review_status !== 'completed'
+      client.review_status !== 'completed' &&
+      client.sms_count < 2
     );
 
     if (clientsToSend.length === 0) {
-      alert('❌ Brak klientów do wysłania wiadomości (wszyscy mają status "completed" lub brak numeru telefonu)');
+      alert('❌ Brak klientów do wysłania wiadomości (wszyscy mają status "completed", brak numeru telefonu lub osiągnęli limit SMS)');
       return;
     }
 
-    if (window.confirm(`Czy chcesz wysłać SMS do wszystkich ${clientsToSend.length} klientów o statusie recenzji różnym od "completed"?`)) {
+    if (window.confirm(`Czy chcesz wysłać SMS do wszystkich ${clientsToSend.length} klientów (pomijając tych z limitem SMS)?`)) {
       try {
         setSendingToAll(true);
         
@@ -344,10 +396,13 @@ const ClientsPage = () => {
                   <tr>
                     <th>Imię</th>
                     <th>Telefon</th>
-                    <th>Notatka</th>
+                    {/* <th>Notatka</th> */}
                     <th>Ocena</th>
                     <th>Recenzja</th>
+                    <th>SMS (Limit)</th>
+                    <th>Źródło</th>
                     <th>Data utworzenia</th>
+                    <th>Data ostatniego SMS</th>
                     <th>Akcje</th>
                   </tr>
                 </thead>
@@ -360,7 +415,7 @@ const ClientsPage = () => {
                       <td className="client-phone">
                         {client.phone || '-'}
                       </td>
-                      <td className="client-note">
+                      {/* <td className="client-note">
                         {client.note ? (
                           <span className="note-text" title={client.note}>
                             {client.note.length > 50 
@@ -369,7 +424,7 @@ const ClientsPage = () => {
                             }
                           </span>
                         ) : '-'}
-                      </td>
+                      </td> */}
                       <td className="client-stars">
                         {client.stars > 0 ? (
                           <span className="stars-display">
@@ -405,6 +460,16 @@ const ClientsPage = () => {
                           <span className="no-review">Brak recenzji</span>
                         )}
                       </td>
+                      <td className="client-sms-count">
+                        <span className={`sms-counter ${client.sms_count >= 2 ? 'limit-reached' : client.sms_count > 0 ? 'has-sms' : ''}`}>
+                          {client.sms_count}/2
+                        </span>
+                      </td>
+                      <td className="client-source">
+                        <span className={`source-badge ${client.source === 'QR' ? 'source-qr' : 'source-crm'}`}>
+                          {client.source || 'CRM'}
+                        </span>
+                      </td>
                       <td className="client-date">
                         {client.created_at ? 
                           (typeof client.created_at === 'string' 
@@ -413,53 +478,93 @@ const ClientsPage = () => {
                           ) : 'Nieznana data'
                         }
                       </td>
+                      <td className="client-last-sms">
+                        {client.last_sms_sent ?
+                          (typeof client.last_sms_sent === 'string' 
+                            ? new Date(client.last_sms_sent).toLocaleDateString('pl-PL')
+                            : client.last_sms_sent.toLocaleDateString('pl-PL')
+                          ) : 'Nieznana data'
+                        }
+                      </td>
                       <td className="client-actions">
-                        <div className="action-buttons">
-                          {client.phone && (
-                            <button 
-                              className={`action-btn sms-btn ${sendingSMS.has(client.id) ? 'loading' : ''}`}
-                              onClick={() => handleSendSMS(client)}
-                              disabled={sendingSMS.has(client.id)}
-                              title="Wyślij SMS z linkiem do opinii"
-                            >
-                              {sendingSMS.has(client.id) ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="loading-icon">
-                                  <circle cx="12" cy="12" r="10"></circle>
-                                  <path d="M12 6v6l4 2"></path>
-                                </svg>
-                              ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect>
-                                  <path d="M12 18h.01"></path>
-                                </svg>
+                        <div className="burger-menu">
+                          <button 
+                            className="burger-btn"
+                            data-client-id={client.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleBurgerMenu(client.id);
+                            }}
+                            title="Menu akcji"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="1"></circle>
+                              <circle cx="19" cy="12" r="1"></circle>
+                              <circle cx="5" cy="12" r="1"></circle>
+                            </svg>
+                          </button>
+                          
+                          {openMenuId === client.id && (
+                            <div className="burger-menu-content">
+                              {client.phone && (
+                                <button 
+                                  className={`menu-item sms-item ${sendingSMS.has(client.id) ? 'loading' : ''} ${client.sms_count >= 2 ? 'disabled' : ''}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSendSMS(client);
+                                    setOpenMenuId(null);
+                                  }}
+                                  disabled={sendingSMS.has(client.id) || client.sms_count >= 2}
+                                  title={client.sms_count >= 2 ? `Limit SMS osiągnięty (${client.sms_count}/2)` : 'Wyślij SMS'}
+                                >
+                                  {sendingSMS.has(client.id) ? (
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="loading-icon">
+                                      <circle cx="12" cy="12" r="10"></circle>
+                                      <path d="M12 6v6l4 2"></path>
+                                    </svg>
+                                  ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect>
+                                      <path d="M12 18h.01"></path>
+                                    </svg>
+                                  )}
+                                  <span>{client.sms_count >= 2 ? 'SMS (Limit)' : 'SMS'}</span>
+                                </button>
                               )}
-                              <span className="btn-text">SMS</span>
-                            </button>
+                              
+                              <button 
+                                className="menu-item edit-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEdit(client);
+                                  setOpenMenuId(null);
+                                }}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                  <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                                <span>Edytuj</span>
+                              </button>
+                              
+                              <button 
+                                className="menu-item delete-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(client.id);
+                                  setOpenMenuId(null);
+                                }}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="3,6 5,6 21,6"></polyline>
+                                  <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                                  <line x1="10" x2="10" y1="11" y2="17"></line>
+                                  <line x1="14" x2="14" y1="11" y2="17"></line>
+                                </svg>
+                                <span>Usuń</span>
+                              </button>
+                            </div>
                           )}
-                          <button 
-                            className="action-btn edit-btn"
-                            onClick={() => handleEdit(client)}
-                            title="Edytuj klienta"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                              <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                            <span className="btn-text">Edytuj</span>
-                          </button>
-                          <button 
-                            className="action-btn delete-btn"
-                            onClick={() => handleDelete(client.id)}
-                            title="Usuń klienta"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="3,6 5,6 21,6"></polyline>
-                              <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
-                              <line x1="10" x2="10" y1="11" y2="17"></line>
-                              <line x1="14" x2="14" y1="11" y2="17"></line>
-                            </svg>
-                            <span className="btn-text">Usuń</span>
-                          </button>
                         </div>
                       </td>
                     </tr>
