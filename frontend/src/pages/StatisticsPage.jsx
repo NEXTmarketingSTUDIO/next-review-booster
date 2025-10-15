@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import useAuth from '../hooks/useAuth';
 import apiService from '../services/api';
+import { generateUsername } from '../utils/userUtils';
 import './StatisticsPage.css';
 
 const StatisticsPage = () => {
@@ -24,7 +25,7 @@ const StatisticsPage = () => {
   const fetchStatistics = async () => {
     try {
       setLoading(true);
-      const username = user.email.split('@')[0];
+      const username = generateUsername(user);
       
       // Pobierz statystyki z backendu
       const statisticsData = await apiService.getUserStatistics(username);
