@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 import useAuth from '../hooks/useAuth';
+import { generateUsername } from '../utils/userUtils';
 import './ClientsPage.css';
 
 const ClientsPage = () => {
@@ -102,8 +103,8 @@ const ClientsPage = () => {
     try {
       setLoading(true);
       console.log('🔄 Pobieranie klientów dla:', user.email);
-      // Używamy email jako username (można zmienić na displayName)
-      const username = user.email.split('@')[0]; // Pobierz część przed @
+      // Używamy nazwy użytkownika zamiast emaila
+      const username = generateUsername(user);
       console.log('👤 Username:', username);
       const response = await apiService.getClients(username);
       console.log('📊 Odpowiedź API:', response);
@@ -121,7 +122,7 @@ const ClientsPage = () => {
     if (!user?.email) return;
     
     try {
-      const username = user.email.split('@')[0];
+      const username = generateUsername(user);
       
       // Przygotuj dane z połączonym numerem telefonu
       const clientData = {
@@ -170,7 +171,7 @@ const ClientsPage = () => {
     
     if (window.confirm('Czy na pewno chcesz usunąć tego klienta?')) {
       try {
-        const username = user.email.split('@')[0];
+        const username = generateUsername(user);
         await apiService.deleteClient(username, clientId);
         fetchClients();
       } catch (error) {
@@ -356,7 +357,7 @@ const ClientsPage = () => {
       try {
         setSendingSMS(prev => new Set(prev).add(client.id));
         
-        const username = user.email.split('@')[0];
+        const username = generateUsername(user);
         const result = await apiService.sendSMS(username, client.id);
         
         alert('✅ SMS został wysłany pomyślnie!');
@@ -402,7 +403,7 @@ const ClientsPage = () => {
       try {
         setSendingToAll(true);
         
-        const username = user.email.split('@')[0];
+        const username = generateUsername(user);
         const result = await apiService.sendSMSToAllClients(username);
         
         alert(`✅ Proces zakończony! Wysłano ${result.sent} z ${result.total_found} klientów`);

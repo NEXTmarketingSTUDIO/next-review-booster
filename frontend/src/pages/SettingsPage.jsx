@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 import useAuth from '../hooks/useAuth';
+import { generateUsername } from '../utils/userUtils';
 import './SettingsPage.css';
 
 const SettingsPage = () => {
@@ -47,7 +48,7 @@ Dziękujemy!`,
 
     try {
       setLoading(true);
-      const username = user.email.split('@')[0];
+      const username = generateUsername(user);
       console.log('🔧 Pobieranie ustawień dla:', username);
       
       const response = await apiService.getUserSettings(username);
@@ -102,7 +103,7 @@ Dziękujemy!`,
 
     try {
       setSaving(true);
-      const username = user.email.split('@')[0];
+      const username = generateUsername(user);
       console.log('💾 Zapisuję ustawienia:', settings);
       
       await apiService.saveUserSettings(username, settings);
@@ -345,6 +346,7 @@ Dziękujemy!`,
                 rows="12"
                 placeholder="Wprowadź treść wiadomości..."
               />
+              
               <div className="character-count">
                 <span className={`count ${smsCost.messageLength > 200 ? 'over-limit' : smsCost.messageLength > 180 ? 'near-limit' : ''}`}>
                   {smsCost.messageLength}/200 znaków

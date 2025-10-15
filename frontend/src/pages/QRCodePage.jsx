@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 import useAuth from '../hooks/useAuth';
+import { generateUsername } from '../utils/userUtils';
 import './QRCodePage.css';
 
 const QRCodePage = () => {
@@ -29,7 +30,7 @@ const QRCodePage = () => {
     
     try {
       setLoading(true);
-      const username = user.email.split('@')[0];
+      const username = generateUsername(user);
       const response = await apiService.getClients(username);
       setClients(response.clients || []);
     } catch (error) {
@@ -64,7 +65,7 @@ const QRCodePage = () => {
     
     try {
       setGenerating(true);
-      const username = user.email.split('@')[0];
+      const username = generateUsername(user);
       console.log('Generowanie kodu QR dla użytkownika:', username);
       
       const data = await apiService.generateCompanyQRCode(username, qrSize);
