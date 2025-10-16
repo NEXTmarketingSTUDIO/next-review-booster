@@ -1003,17 +1003,10 @@ async def get_user_settings(username: str):
                 ),
                 messaging=MessagingSettings(
                     reminderFrequency=7,
-                    messageTemplate="""Dzień dobry!
+                    messageTemplate="""Bardzo prosimy o zostawienie opinii o naszych usługach: [LINK]
+Wasza opinia ma dla nas ogromne znaczenie i pomoże kolejnym klientom w wyborze.
 
-Chciałbym przypomnieć o możliwości wystawienia opinii o naszych usługach. 
-Wasza opinia jest dla nas bardzo ważna i pomoże innym klientom w podjęciu decyzji.
-
-Link do wystawienia opinii: [LINK]
-
-Z góry dziękuję za poświęcony czas!
-
-Z poważaniem,
-[NAZWA_FIRMY]""",
+Dziękujemy!""",
                     autoSendEnabled=False
                 ),
             )
