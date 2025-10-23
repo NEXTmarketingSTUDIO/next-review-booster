@@ -768,6 +768,41 @@
 }
 
 /* Animation for smooth transitions */
+
+/* Admin button styles */
+.sidebar-menu-button[data-admin="true"] {
+  background: linear-gradient(135deg, #fef2f2, #fecaca);
+  color: #dc2626;
+  border-left: 3px solid #dc2626;
+  font-weight: 600;
+}
+
+.sidebar-menu-button[data-admin="true"]:hover {
+  background: linear-gradient(135deg, #fee2e2, #fca5a5);
+  color: #b91c1c;
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+}
+
+.sidebar-menu-button[data-admin="true"] svg {
+  color: #dc2626;
+}
+
+.sidebar-menu-button[data-admin="true"]:hover svg {
+  color: #b91c1c;
+  transform: scale(1.1);
+}
+
+.sidebar-menu-button[data-admin="true"]::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #dc2626;
+  border-radius: 0 2px 2px 0;
+}
 * {
   transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
 }

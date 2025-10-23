@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Routes, Route, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
+import usePermissions from '../hooks/usePermissions';
 import UserNav from './UserNav';
 import ClientsPage from '../pages/ClientsPage';
 import QRCodePage from '../pages/QRCodePage';
@@ -10,10 +11,12 @@ import VisitsPage from '../pages/VisitsPage';
 import GoogleReviewsPage from '../pages/GoogleReviewsPage';
 import ExperimentsPage from '../pages/ExperimentsPage';
 import HelpPage from '../pages/HelpPage';
+import AdminPage from '../pages/AdminPage';
 import './Dashboard.css';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
+  const { isAdmin } = usePermissions();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(window.innerWidth <= 768);
@@ -214,6 +217,7 @@ const Dashboard = () => {
                           <button 
                             className={`sidebar-menu-button ${isActive(item.path) ? 'active' : ''}`}
                             data-active={isActive(item.path)}
+                            data-admin={item.adminOnly || false}
                             aria-current={isActive(item.path) ? 'page' : undefined}
                             role="menuitem"
                           >
@@ -306,6 +310,23 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <ul className="profile-dropdown-list">
+                      {isAdmin() && (
+                        <li>
+                          <Link 
+                            to="/dashboard/admin" 
+                            className="profile-dropdown-item" 
+                            onClick={() => setIsProfileDropdownOpen(false)}
+                            role="menuitem"
+                            tabIndex={0}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-shield h-4 w-4">
+                              <path d="M12 2 2 22h20L12 2z"/>
+                              <polyline points="12 8 12 12 16 14"/>
+                            </svg>
+                            Panel Administratora
+                          </Link>
+                        </li>
+                      )}
                       <li>
                         <Link 
                           to="/dashboard/review-links" 
@@ -430,6 +451,7 @@ const Dashboard = () => {
             <Route path="/statistics" element={<StatisticsPage />} />
             <Route path="/google_reviews" element={<GoogleReviewsPage />} />
             <Route path="/experiments" element={<ExperimentsPage />} />
+            <Route path="/admin" element={<AdminPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/help" element={<HelpPage />} />
           </Routes>

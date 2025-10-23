@@ -359,6 +359,84 @@ export const apiService = {
     }
   },
 
+  // Funkcje związane z uprawnieniami
+  async getUserPermissionByEmail(email) {
+    console.log('🔐 API: Pobieranie uprawnień dla email:', email);
+    try {
+      const response = await api.get(`/user-permission-by-email/${email}`);
+      console.log('✅ API: Uprawnienia pobrane:', response.data);
+      return {
+        success: true,
+        permission: response.data.permission,
+        username: response.data.username
+      };
+    } catch (error) {
+      console.error('❌ API: Błąd pobierania uprawnień:', error);
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Błąd pobierania uprawnień'
+      };
+    }
+  },
+
+  // Funkcje administratora
+  async getAllUsers() {
+    console.log('👥 API: Pobieranie wszystkich użytkowników');
+    try {
+      const response = await api.get('/admin/users');
+      console.log('✅ API: Użytkownicy pobrani:', response.data);
+      return {
+        success: true,
+        users: response.data.users,
+        total: response.data.total
+      };
+    } catch (error) {
+      console.error('❌ API: Błąd pobierania użytkowników:', error);
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Błąd pobierania użytkowników'
+      };
+    }
+  },
+
+  async updateUserPermission(username, permissionData) {
+    console.log('🔐 API: Aktualizacja uprawnień:', { username, permissionData });
+    try {
+      const response = await api.put(`/admin/users/${username}/permission`, permissionData);
+      console.log('✅ API: Uprawnienia zaktualizowane:', response.data);
+      return {
+        success: true,
+        permission: response.data.permission,
+        smsLimit: response.data.smsLimit,
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error('❌ API: Błąd aktualizacji uprawnień:', error);
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Błąd aktualizacji uprawnień'
+      };
+    }
+  },
+
+  async updateUserTwilio(username, twilioData) {
+    console.log('📱 API: Aktualizacja Twilio:', { username, twilioData });
+    try {
+      const response = await api.put(`/admin/users/${username}/twilio`, twilioData);
+      console.log('✅ API: Twilio zaktualizowane:', response.data);
+      return {
+        success: true,
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error('❌ API: Błąd aktualizacji Twilio:', error);
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Błąd aktualizacji Twilio'
+      };
+    }
+  }
+
 };
 
 export default apiService;

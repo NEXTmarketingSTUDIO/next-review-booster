@@ -28,6 +28,101 @@ class UserPermission(str, Enum):
     PROFESSIONAL = "Professional"
     DEMO = "Demo"
 
+def get_sms_limit_for_permission(permission: UserPermission) -> int:
+    limits = {
+        UserPermission.ADMIN: 1000,        # Admin - nieograniczony praktycznie
+        UserPermission.PROFESSIONAL: 200,  # Professional - 200 SMS
+        UserPermission.STARTER: 50,       # Starter - 50 SMS  
+        UserPermission.DEMO: 10            # Demo - 10 SMS
+    }
+    return limits.get(permission, 10)  # Domyślnie 10 dla nieznanych uprawnień
+
+def check_sms_limit(username: str) -> dict:
+    """Sprawdź czy użytkownik nie przekroczył limitu SMS"""
+    try:
+        # Pobierz ustawienia użytkownika
+        doc_ref = db.collection(username).document("Dane")
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            return {"allowed": False, "message": "Użytkownik nie istnieje"}
+        
+        settings_data = doc.to_dict()
+        settings = UserSettings(**settings_data)
+        
+        # Pobierz limit z ustawień lub na podstawie uprawnień
+        sms_limit = settings.messaging.smsLimit
+        if sms_limit is None:
+            sms_limit = get_sms_limit_for_permission(settings.permission)
+        
+        # Sprawdź czy trzeba zresetować limit (nowy miesiąc)
+        current_month = datetime.now().strftime("%Y-%m")
+        last_reset_month = settings_data.get("messaging", {}).get("lastResetMonth", "")
+        
+        if last_reset_month != current_month:
+            # Nowy miesiąc - zresetuj limit
+            reset_sms_limit_for_month(username, current_month, sms_limit)
+        
+        # Policz wysłane SMS w tym miesiącu
+        sms_collection = db.collection(username).document("SMS").collection(current_month)
+        sent_sms_count = len(list(sms_collection.stream()))
+        
+        print(f"📊 Limit SMS dla {username}: {sms_limit}, wysłane: {sent_sms_count}")
+        
+        if sent_sms_count >= sms_limit:
+            return {
+                "allowed": False, 
+                "message": f"Przekroczono limit SMS ({sms_limit}). Wysłano: {sent_sms_count}",
+                "limit": sms_limit,
+                "sent": sent_sms_count
+            }
+        
+        return {
+            "allowed": True,
+            "message": f"Limit SMS: {sms_limit}, wysłane: {sent_sms_count}",
+            "limit": sms_limit,
+            "sent": sent_sms_count,
+            "remaining": sms_limit - sent_sms_count
+        }
+        
+    except Exception as e:
+        print(f"❌ Błąd podczas sprawdzania limitu SMS: {str(e)}")
+        return {"allowed": False, "message": f"Błąd sprawdzania limitu: {str(e)}"}
+
+def reset_sms_limit_for_month(username: str, current_month: str, sms_limit: int):
+    """Zresetuj limit SMS dla nowego miesiąca"""
+    try:
+        print(f"🔄 Resetowanie limitu SMS dla {username} na miesiąc {current_month}")
+        
+        # Pobierz aktualne ustawienia
+        doc_ref = db.collection(username).document("Dane")
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            print(f"❌ Użytkownik {username} nie istnieje")
+            return False
+        
+        settings_data = doc.to_dict()
+        
+        # Zaktualizuj ustawienia messaging
+        if "messaging" not in settings_data:
+            settings_data["messaging"] = {}
+        
+        settings_data["messaging"]["lastResetMonth"] = current_month
+        settings_data["messaging"]["smsLimit"] = sms_limit
+        settings_data["messaging"]["smsCount"] = 0  # Zresetuj licznik
+        settings_data["updated_at"] = datetime.now().isoformat()
+        
+        # Zapisz zaktualizowane ustawienia
+        doc_ref.set(settings_data)
+        
+        print(f"✅ Limit SMS zresetowany dla {username}: {sms_limit} SMS na miesiąc {current_month}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Błąd resetowania limitu SMS: {str(e)}")
+        return False
+
 def convert_firebase_timestamp_to_naive(timestamp):
     """Bezpiecznie konwertuj Firebase Timestamp na naive datetime"""
     if not timestamp:
@@ -124,6 +219,12 @@ Wasza opinia ma dla nas ogromne znaczenie i pomoże kolejnym klientom w wyborze.
 
 Dziękujemy!""",
                 autoSendEnabled=False
+            ),
+            twilio=TwilioSettings(
+                account_sid="TWILIO_ACCOUNT_SID_ENV",
+                auth_token="TWILIO_AUTH_TOKEN_ENV",
+                phone_number="",
+                messaging_service_sid="MG12792d6acd38447e77756a5ceb2c75f1"
             ),
             permission=UserPermission.DEMO  # Nowi użytkownicy domyślnie mają uprawnienia Demo
         )
@@ -282,13 +383,15 @@ class UserData(BaseModel):
 class TwilioSettings(BaseModel):
     account_sid: str = ""
     auth_token: str = ""
-    phone_number: str = ""  # Zachowujemy dla kompatybilności wstecznej
-    messaging_service_sid: str = ""  # Nowe pole dla Messaging Service SID
+    phone_number: str = "" 
+    messaging_service_sid: str = "" 
 
 class MessagingSettings(BaseModel):
     reminderFrequency: int = 7
     messageTemplate: str = ""
-    autoSendEnabled: bool = False  # Czy automatyczne wysyłanie jest włączone
+    autoSendEnabled: bool = False  
+    smsLimit: int = 10
+    smsCount: int = 0  # Licznik wysłanych SMS
 
 class UserSettings(BaseModel):
     userData: UserData
@@ -404,10 +507,16 @@ def get_twilio_client_for_user(username: str):
         return None
 
 # Funkcja do wysyłania SMS przez Twilio
-async def send_sms(to_phone: str, message: str, twilio_config: dict) -> dict:
+async def send_sms(to_phone: str, message: str, twilio_config: dict, username: str = None) -> dict:
     """Wysyła SMS przez Twilio używając Messaging Service SID lub numeru telefonu"""
     if not twilio_config:
         raise HTTPException(status_code=500, detail="Twilio nie jest skonfigurowany")
+    
+    # Sprawdź limit SMS jeśli podano username
+    if username:
+        limit_check = check_sms_limit(username)
+        if not limit_check["allowed"]:
+            raise HTTPException(status_code=429, detail=limit_check["message"])
     
     try:
         client = twilio_config["client"]
@@ -450,6 +559,43 @@ async def send_sms(to_phone: str, message: str, twilio_config: dict) -> dict:
             raise HTTPException(status_code=500, detail="Brak konfiguracji nadawcy (messaging_service_sid lub phone_number)")
         
         print(f"✅ SMS wysłany pomyślnie. SID: {message_obj.sid}")
+        
+        # Zapisz informację o wysłanym SMS do bazy danych i zwiększ licznik
+        if username:
+            try:
+                # Zapisz szczegóły SMS do kolekcji miesięcznej
+                current_month = datetime.now().strftime("%Y-%m")
+                sms_doc_ref = db.collection(username).document("SMS").collection(current_month).document()
+                sms_data = {
+                    "to_phone": to_phone,
+                    "message": message,
+                    "sid": message_obj.sid,
+                    "sent_at": datetime.now(),
+                    "status": "sent"
+                }
+                sms_doc_ref.set(sms_data)
+                
+                # Zwiększ licznik SMS w ustawieniach użytkownika
+                settings_doc_ref = db.collection(username).document("Dane")
+                settings_doc = settings_doc_ref.get()
+                if settings_doc.exists:
+                    settings_data = settings_doc.to_dict()
+                    if "messaging" not in settings_data:
+                        settings_data["messaging"] = {}
+                    if "smsCount" not in settings_data["messaging"]:
+                        settings_data["messaging"]["smsCount"] = 0
+                    
+                    # Zwiększ licznik o 1
+                    settings_data["messaging"]["smsCount"] = settings_data["messaging"]["smsCount"] + 1
+                    settings_data["updated_at"] = datetime.now().isoformat()
+                    
+                    # Zapisz zaktualizowane ustawienia
+                    settings_doc_ref.set(settings_data)
+                    print(f"📊 Licznik SMS zwiększony do: {settings_data['messaging']['smsCount']}")
+                
+                print(f"📝 Zapisano informację o SMS w bazie danych")
+            except Exception as e:
+                print(f"⚠️ Błąd zapisywania SMS do bazy danych: {str(e)}")
         
         return {
             "success": True,
@@ -746,7 +892,7 @@ Z poważaniem,
                             
                             # Wyślij SMS
                             print(f"📱 Wysyłanie przypomnienia SMS do: {client_name} ({phone})")
-                            result = await send_sms(phone, message, twilio_config)
+                            result = await send_sms(phone, message, twilio_config, collection_name)
                             
                             # Zaktualizuj status klienta
                             doc_ref = db.collection(collection_name).document(client_id)
@@ -1118,13 +1264,20 @@ async def get_user_settings(username: str):
                         companyName="",
                         googleCard=""
                     ),
-                    messaging=MessagingSettings(
-                        reminderFrequency=7,
-                        messageTemplate="""Bardzo prosimy o zostawienie opinii o naszych usługach: [LINK]
+            messaging=MessagingSettings(
+                reminderFrequency=7,
+                messageTemplate="""Bardzo prosimy o zostawienie opinii o naszych usługach: [LINK]
 Wasza opinia ma dla nas ogromne znaczenie i pomoże kolejnym klientom w wyborze.
 
 Dziękujemy!""",
-                        autoSendEnabled=False
+                autoSendEnabled=False,
+                smsLimit=get_sms_limit_for_permission(UserPermission.DEMO)
+            ),
+                    twilio=TwilioSettings(
+                        account_sid="TWILIO_ACCOUNT_SID_ENV",
+                        auth_token="TWILIO_AUTH_TOKEN_ENV",
+                        phone_number="",
+                        messaging_service_sid="MG12792d6acd38447e77756a5ceb2c75f1"
                     ),
                     permission=UserPermission.DEMO
                 )
@@ -1207,6 +1360,11 @@ async def update_user_permission(username: str, permission_data: PermissionUpdat
         
         # Zaktualizuj uprawnienia
         settings.permission = permission_data.permission
+        
+        # Zaktualizuj limit SMS na podstawie nowych uprawnień
+        new_sms_limit = get_sms_limit_for_permission(permission_data.permission)
+        settings.messaging.smsLimit = new_sms_limit
+        print(f"📊 Zaktualizowano limit SMS dla {username}: {new_sms_limit}")
         
         # Zapisz zaktualizowane ustawienia
         settings_dict = settings.dict()
@@ -1469,7 +1627,14 @@ async def register_user(user_data: UserRegistrationData):
 Wasza opinia ma dla nas ogromne znaczenie i pomoże kolejnym klientom w wyborze.
 
 Dziękujemy!""",
-                autoSendEnabled=False
+                autoSendEnabled=False,
+                smsLimit=get_sms_limit_for_permission(UserPermission.DEMO)
+            ),
+            twilio=TwilioSettings(
+                account_sid="TWILIO_ACCOUNT_SID_ENV",
+                auth_token="TWILIO_AUTH_TOKEN_ENV",
+                phone_number="",
+                messaging_service_sid="MG12792d6acd38447e77756a5ceb2c75f1"
             ),
             permission=UserPermission.DEMO  # Nowi użytkownicy domyślnie mają uprawnienia Demo
         )
@@ -1991,7 +2156,7 @@ Z poważaniem,
         message = message_template.replace("[LINK]", review_url).replace("[NAZWA_FIRMY]", company_name)
         
         # Wyślij SMS
-        result = await send_sms(client_phone, message, twilio_config)
+        result = await send_sms(client_phone, message, twilio_config, username)
         
         # Zaktualizuj status klienta
         now = datetime.now()
@@ -2029,7 +2194,7 @@ async def send_sms_direct(username: str, sms_request: SMSRequest):
         if not twilio_config:
             raise HTTPException(status_code=400, detail="Twilio nie jest skonfigurowany dla tego użytkownika")
         
-        result = await send_sms(sms_request.to_phone, sms_request.message, twilio_config)
+        result = await send_sms(sms_request.to_phone, sms_request.message, twilio_config, username)
         return SMSResponse(**result)
         
     except HTTPException:
@@ -2120,6 +2285,23 @@ async def test_reminders_for_user(username: str):
         raise HTTPException(status_code=500, detail=f"Błąd podczas testowania: {str(e)}")
 
 # Endpoint do wysyłania wiadomości do wszystkich klientów użytkownika (testowy)
+@app.get("/sms-limit/{username}")
+async def get_sms_limit(username: str):
+    """Sprawdź limit SMS dla użytkownika"""
+    try:
+        limit_info = check_sms_limit(username)
+        return {
+            "username": username,
+            "limit": limit_info.get("limit", 0),
+            "sent": limit_info.get("sent", 0),
+            "remaining": limit_info.get("remaining", 0),
+            "allowed": limit_info.get("allowed", False),
+            "message": limit_info.get("message", "")
+        }
+    except Exception as e:
+        print(f"❌ Błąd podczas sprawdzania limitu SMS: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd sprawdzania limitu: {str(e)}")
+
 @app.post("/send-sms-all/{username}")
 async def send_sms_to_all_clients(username: str):
     """Wyślij SMS do wszystkich klientów użytkownika o statusie recenzji różnym od 'completed'"""
@@ -2215,7 +2397,7 @@ Z poważaniem,
                 
                 # Wyślij SMS
                 print(f"📱 Wysyłanie SMS do: {client['name']} ({client['phone']})")
-                result = await send_sms(client['phone'], message, twilio_config)
+                result = await send_sms(client['phone'], message, twilio_config, username)
                 
                 # Zaktualizuj status klienta
                 now = datetime.now()
@@ -2420,3 +2602,397 @@ if __name__ == "__main__":
         port=port, 
         reload=not is_production  
     )
+
+# Endpoint do pobierania uprawnień na podstawie email
+@app.get("/user-permission-by-email/{email}")
+async def get_user_permission_by_email(email: str):
+    """Pobierz uprawnienia użytkownika na podstawie email"""
+    print(f"🔍 Sprawdzanie uprawnień dla email: {email}")
+    
+    if not db:
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Znajdź użytkownika po email w bazie danych
+        collections = db.collections()
+        found_username = None
+        
+        for collection in collections:
+            collection_name = collection.id
+            
+            # Pomiń kolekcje systemowe
+            if collection_name in ["temp_clients"]:
+                continue
+            
+            try:
+                settings_doc = db.collection(collection_name).document("Dane").get()
+                if settings_doc.exists:
+                    settings_data = settings_doc.to_dict()
+                    user_email = settings_data.get("userData", {}).get("email", "")
+                    if user_email == email:
+                        found_username = collection_name
+                        break
+            except Exception as e:
+                print(f"⚠️ Błąd sprawdzania kolekcji {collection_name}: {str(e)}")
+                continue
+        
+        if not found_username:
+            print(f"❌ Nie znaleziono użytkownika z emailem: {email}")
+            return {
+                "username": None,
+                "permission": "Demo",
+                "message": f"Nie znaleziono użytkownika z emailem: {email}"
+            }
+        
+        # Pobierz uprawnienia znalezionego użytkownika
+        permission = get_user_permission_from_db(found_username)
+        print(f"✅ Uprawnienia użytkownika {found_username} (email: {email}): {permission}")
+        
+        return {
+            "username": found_username,
+            "permission": permission,
+            "message": f"Uprawnienia użytkownika {found_username}: {permission}"
+        }
+        
+    except Exception as e:
+        print(f"❌ Błąd pobierania uprawnień: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd pobierania uprawnień: {str(e)}")
+
+# Endpoint do pobierania wszystkich użytkowników (tylko dla adminów)
+@app.get("/admin/users")
+async def get_all_users():
+    """Pobierz wszystkich zarejestrowanych użytkowników"""
+    print(f"👥 Pobieranie wszystkich użytkowników")
+    
+    if not db:
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        users = []
+        collections = db.collections()
+        
+        for collection in collections:
+            collection_name = collection.id
+            
+            # Pomiń kolekcje systemowe
+            if collection_name in ["temp_clients"]:
+                continue
+            
+            try:
+                # Pobierz dane użytkownika
+                settings_doc = db.collection(collection_name).document("Dane").get()
+                if settings_doc.exists:
+                    settings_data = settings_doc.to_dict()
+                    
+                    # Wyciągnij podstawowe informacje o użytkowniku
+                    user_data = settings_data.get("userData", {})
+                    permission = settings_data.get("permission", "Demo")
+                    twilio_settings = settings_data.get("twilio", {})
+                    messaging_settings = settings_data.get("messaging", {})
+                    
+                    # Policz klientów użytkownika
+                    clients_count = 0
+                    try:
+                        # Pobierz wszystkie dokumenty w kolekcji użytkownika (pomijając "Dane" i "SMS")
+                        user_collection = db.collection(collection_name)
+                        docs = user_collection.stream()
+                        for doc in docs:
+                            doc_id = doc.id
+                            # Pomiń dokumenty systemowe
+                            if doc_id not in ["Dane", "SMS"]:
+                                clients_count += 1
+                    except Exception as e:
+                        print(f"⚠️ Błąd liczenia klientów dla {collection_name}: {str(e)}")
+                        clients_count = 0
+                    
+                    user_info = {
+                        "username": collection_name,
+                        "email": user_data.get("email", ""),
+                        "name": user_data.get("name", ""),
+                        "surname": user_data.get("surname", ""),
+                        "companyName": user_data.get("companyName", ""),
+                        "permission": permission,
+                        "twilio": {
+                            "account_sid": twilio_settings.get("account_sid", ""),
+                            "auth_token": twilio_settings.get("auth_token", ""),
+                            "phone_number": twilio_settings.get("phone_number", ""),
+                            "messaging_service_sid": twilio_settings.get("messaging_service_sid", "")
+                        },
+                        "smsLimit": messaging_settings.get("smsLimit", 10),
+                        "smsCount": messaging_settings.get("smsCount", 0),
+                        "clientsCount": clients_count,
+                        "created_at": settings_data.get("created_at", ""),
+                        "updated_at": settings_data.get("updated_at", "")
+                    }
+                    
+                    users.append(user_info)
+                    print(f"✅ Znaleziono użytkownika: {collection_name} ({user_data.get('email', 'Brak email')})")
+                    
+            except Exception as e:
+                print(f"⚠️ Błąd pobierania danych użytkownika {collection_name}: {str(e)}")
+                continue
+        
+        print(f"📊 Znaleziono {len(users)} użytkowników")
+        return {
+            "users": users,
+            "total": len(users),
+            "message": f"Znaleziono {len(users)} użytkowników"
+        }
+        
+    except Exception as e:
+        print(f"❌ Błąd pobierania użytkowników: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd pobierania użytkowników: {str(e)}")
+
+# Endpoint do aktualizacji uprawnień użytkownika
+@app.put("/admin/users/{username}/permission")
+async def update_user_permission_admin(username: str, permission_data: dict):
+    """Aktualizuj uprawnienia użytkownika"""
+    print(f"🔐 Aktualizacja uprawnień dla {username}: {permission_data}")
+    
+    if not db:
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Sprawdź czy użytkownik istnieje
+        doc_ref = db.collection(username).document("Dane")
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail=f"Użytkownik {username} nie istnieje")
+        
+        # Pobierz aktualne dane
+        settings_data = doc.to_dict()
+        
+        # Aktualizuj uprawnienia
+        new_permission = permission_data.get("permission", "Demo")
+        settings_data["permission"] = new_permission
+        settings_data["updated_at"] = datetime.now().isoformat()
+        
+        # Aktualizuj SMS limit na podstawie nowych uprawnień
+        sms_limit = get_sms_limit_for_permission(UserPermission(new_permission))
+        if "messaging" not in settings_data:
+            settings_data["messaging"] = {}
+        settings_data["messaging"]["smsLimit"] = sms_limit
+        
+        # Zapisz zmiany
+        doc_ref.set(settings_data)
+        
+        print(f"✅ Uprawnienia zaktualizowane: {username} -> {new_permission} (SMS limit: {sms_limit})")
+        
+        return {
+            "success": True,
+            "message": f"Uprawnienia użytkownika {username} zaktualizowane na {new_permission}",
+            "username": username,
+            "permission": new_permission,
+            "smsLimit": sms_limit
+        }
+        
+    except Exception as e:
+        print(f"❌ Błąd aktualizacji uprawnień: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd aktualizacji uprawnień: {str(e)}")
+
+# Endpoint do aktualizacji konfiguracji Twilio użytkownika
+@app.put("/admin/users/{username}/twilio")
+async def update_user_twilio_admin(username: str, twilio_data: dict):
+    """Aktualizuj konfigurację Twilio użytkownika"""
+    print(f"📱 Aktualizacja Twilio dla {username}: {twilio_data}")
+    
+    if not db:
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Sprawdź czy użytkownik istnieje
+        doc_ref = db.collection(username).document("Dane")
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail=f"Użytkownik {username} nie istnieje")
+        
+        # Pobierz aktualne dane
+        settings_data = doc.to_dict()
+        
+        # Aktualizuj konfigurację Twilio
+        if "twilio" not in settings_data:
+            settings_data["twilio"] = {}
+        
+        settings_data["twilio"].update({
+            "account_sid": twilio_data.get("account_sid", ""),
+            "auth_token": twilio_data.get("auth_token", ""),
+            "phone_number": twilio_data.get("phone_number", ""),
+            "messaging_service_sid": twilio_data.get("messaging_service_sid", "")
+        })
+        
+        settings_data["updated_at"] = datetime.now().isoformat()
+        
+        # Zapisz zmiany
+        doc_ref.set(settings_data)
+        
+        print(f"✅ Twilio zaktualizowane dla {username}")
+        
+        return {
+            "success": True,
+            "message": f"Konfiguracja Twilio dla {username} zaktualizowana",
+            "username": username,
+            "twilio": settings_data["twilio"]
+        }
+        
+    except Exception as e:
+        print(f"❌ Błąd aktualizacji Twilio: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd aktualizacji Twilio: {str(e)}")
+
+# Endpoint do pobierania statystyk SMS użytkownika
+@app.get("/admin/users/{username}/sms-stats")
+async def get_user_sms_stats(username: str):
+    """Pobierz statystyki SMS użytkownika"""
+    print(f"📊 Pobieranie statystyk SMS dla {username}")
+    
+    if not db:
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Sprawdź czy użytkownik istnieje
+        doc_ref = db.collection(username).document("Dane")
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail=f"Użytkownik {username} nie istnieje")
+        
+        settings_data = doc.to_dict()
+        messaging_settings = settings_data.get("messaging", {})
+        
+        # Pobierz licznik SMS z ustawień
+        sms_count = messaging_settings.get("smsCount", 0)
+        sms_limit = messaging_settings.get("smsLimit", 10)
+        
+        # Pobierz szczegóły SMS z kolekcji miesięcznych
+        current_month = datetime.now().strftime("%Y-%m")
+        sms_collection = db.collection(username).document("SMS").collection(current_month)
+        sms_docs = list(sms_collection.stream())
+        
+        # Statystyki miesięczne
+        monthly_sent = len(sms_docs)
+        monthly_remaining = max(0, sms_limit - monthly_sent)
+        
+        # Statystyki z ostatnich 3 miesięcy
+        stats_by_month = {}
+        for i in range(3):
+            month = (datetime.now() - timedelta(days=30*i)).strftime("%Y-%m")
+            month_collection = db.collection(username).document("SMS").collection(month)
+            month_docs = list(month_collection.stream())
+            stats_by_month[month] = len(month_docs)
+        
+        print(f"📊 Statystyki SMS dla {username}: wysłane={sms_count}, limit={sms_limit}")
+        
+        return {
+            "username": username,
+            "total_sent": sms_count,
+            "sms_limit": sms_limit,
+            "monthly_sent": monthly_sent,
+            "monthly_remaining": monthly_remaining,
+            "stats_by_month": stats_by_month,
+            "current_month": current_month,
+            "usage_percentage": round((monthly_sent / sms_limit) * 100, 2) if sms_limit > 0 else 0
+        }
+        
+    except Exception as e:
+        print(f"❌ Błąd pobierania statystyk SMS: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd pobierania statystyk SMS: {str(e)}")
+
+# Endpoint do ręcznego resetowania limitu SMS
+@app.post("/admin/users/{username}/reset-sms-limit")
+async def reset_user_sms_limit(username: str):
+    """Ręcznie zresetuj limit SMS dla użytkownika"""
+    print(f"🔄 Ręczne resetowanie limitu SMS dla {username}")
+    
+    if not db:
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Sprawdź czy użytkownik istnieje
+        doc_ref = db.collection(username).document("Dane")
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail=f"Użytkownik {username} nie istnieje")
+        
+        settings_data = doc.to_dict()
+        permission = settings_data.get("permission", "Demo")
+        
+        # Pobierz limit na podstawie uprawnień
+        sms_limit = get_sms_limit_for_permission(UserPermission(permission))
+        current_month = datetime.now().strftime("%Y-%m")
+        
+        # Zresetuj limit
+        success = reset_sms_limit_for_month(username, current_month, sms_limit)
+        
+        if success:
+            return {
+                "success": True,
+                "message": f"Limit SMS zresetowany dla {username}",
+                "username": username,
+                "sms_limit": sms_limit,
+                "month": current_month
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Błąd resetowania limitu SMS")
+        
+    except Exception as e:
+        print(f"❌ Błąd resetowania limitu SMS: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd resetowania limitu SMS: {str(e)}")
+
+# Endpoint do resetowania limitu SMS dla wszystkich użytkowników
+@app.post("/admin/reset-all-sms-limits")
+async def reset_all_sms_limits():
+    """Zresetuj limit SMS dla wszystkich użytkowników (nowy miesiąc)"""
+    print(f"🔄 Resetowanie limitów SMS dla wszystkich użytkowników")
+    
+    if not db:
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        current_month = datetime.now().strftime("%Y-%m")
+        reset_count = 0
+        errors = []
+        
+        # Pobierz wszystkich użytkowników
+        collections = db.collections()
+        
+        for collection in collections:
+            collection_name = collection.id
+            
+            # Pomiń kolekcje systemowe
+            if collection_name in ["temp_clients"]:
+                continue
+            
+            try:
+                # Sprawdź czy to użytkownik
+                settings_doc = db.collection(collection_name).document("Dane").get()
+                if settings_doc.exists:
+                    settings_data = settings_doc.to_dict()
+                    permission = settings_data.get("permission", "Demo")
+                    sms_limit = get_sms_limit_for_permission(UserPermission(permission))
+                    
+                    # Zresetuj limit
+                    success = reset_sms_limit_for_month(collection_name, current_month, sms_limit)
+                    if success:
+                        reset_count += 1
+                    else:
+                        errors.append(f"Błąd resetowania dla {collection_name}")
+                        
+            except Exception as e:
+                errors.append(f"Błąd dla {collection_name}: {str(e)}")
+                continue
+        
+        print(f"✅ Zresetowano limity dla {reset_count} użytkowników")
+        
+        return {
+            "success": True,
+            "message": f"Zresetowano limity SMS dla {reset_count} użytkowników",
+            "reset_count": reset_count,
+            "month": current_month,
+            "errors": errors
+        }
+        
+    except Exception as e:
+        print(f"❌ Błąd resetowania limitów SMS: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd resetowania limitów SMS: {str(e)}")
