@@ -221,10 +221,10 @@ Dziękujemy!""",
                 autoSendEnabled=False
             ),
             twilio=TwilioSettings(
-                account_sid="TWILIO_ACCOUNT_SID_ENV",
-                auth_token="TWILIO_AUTH_TOKEN_ENV",
+                account_sid="ACfc0d69a38f5b328bc7783fa5829336b2",
+                auth_token="3d5761074605ac590f0c18494820d15f",
                 phone_number="",
-                messaging_service_sid="TWILIO_MESSAGING_SERVICE_SID_ENV"
+                messaging_service_sid="MG12792d6acd38447e77756a5ceb2c75f1"
             ),
             permission=UserPermission.DEMO  # Nowi użytkownicy domyślnie mają uprawnienia Demo
         )
