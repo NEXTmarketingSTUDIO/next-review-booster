@@ -2585,24 +2585,6 @@ async def get_user_statistics(username: str):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Błąd podczas pobierania statystyk: {str(e)}")
 
-if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))
-    
-    print("🚀 Uruchamianie next review booster API...")
-    print(f"🔧 Port: {port}")
-    print(f"🌐 API: http://0.0.0.0:{port}")
-    print(f"📚 Dokumentacja: http://0.0.0.0:{port}/docs")
-    print(f"❤️  Health Check: http://0.0.0.0:{port}/health")
-
-    is_production = os.getenv("ENVIRONMENT") == "production" or os.getenv("RENDER") == "true"
-    
-    uvicorn.run(
-        "backend_main:app", 
-        host="0.0.0.0", 
-        port=port, 
-        reload=not is_production  
-    )
-
 # Endpoint do pobierania uprawnień na podstawie email
 @app.get("/user-permission-by-email/{email}")
 async def get_user_permission_by_email(email: str):
@@ -2996,3 +2978,22 @@ async def reset_all_sms_limits():
     except Exception as e:
         print(f"❌ Błąd resetowania limitów SMS: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Błąd resetowania limitów SMS: {str(e)}")
+
+
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8000))
+    
+    print("🚀 Uruchamianie next review booster API...")
+    print(f"🔧 Port: {port}")
+    print(f"🌐 API: http://0.0.0.0:{port}")
+    print(f"📚 Dokumentacja: http://0.0.0.0:{port}/docs")
+    print(f"❤️  Health Check: http://0.0.0.0:{port}/health")
+
+    is_production = os.getenv("ENVIRONMENT") == "production" or os.getenv("RENDER") == "true"
+    
+    uvicorn.run(
+        "backend_main:app", 
+        host="0.0.0.0", 
+        port=port, 
+        reload=not is_production  
+    )
