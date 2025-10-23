@@ -19,6 +19,14 @@ import asyncio
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from enum import Enum
+
+# Enum dla uprawnień użytkownika
+class UserPermission(str, Enum):
+    ADMIN = "Admin"
+    STARTER = "Starter" 
+    PROFESSIONAL = "Professional"
+    DEMO = "Demo"
 
 def convert_firebase_timestamp_to_naive(timestamp):
     """Bezpiecznie konwertuj Firebase Timestamp na naive datetime"""
@@ -47,6 +55,93 @@ def convert_firebase_timestamp_to_naive(timestamp):
         return timestamp
     
     return None
+
+def get_user_permission_from_db(username: str) -> UserPermission:
+    """Pobierz uprawnienia użytkownika z bazy danych"""
+    if not db:
+        return UserPermission.DEMO
+    
+    try:
+        doc_ref = db.collection(username).document("Dane")
+        doc = doc_ref.get()
+        
+        if doc.exists:
+            settings_data = doc.to_dict()
+            settings = UserSettings(**settings_data)
+            return settings.permission
+        else:
+            return UserPermission.DEMO  # Domyślnie Demo jeśli użytkownik nie istnieje
+    except Exception as e:
+        print(f"❌ Błąd podczas pobierania uprawnień dla {username}: {str(e)}")
+        return UserPermission.DEMO
+
+def check_user_permission(username: str, required_permission: UserPermission) -> bool:
+    """Sprawdź czy użytkownik ma wymagane uprawnienia"""
+    user_permission = get_user_permission_from_db(username)
+    
+    # Hierarchia uprawnień: Admin > Professional > Starter > Demo
+    permission_hierarchy = {
+        UserPermission.ADMIN: 4,
+        UserPermission.PROFESSIONAL: 3,
+        UserPermission.STARTER: 2,
+        UserPermission.DEMO: 1
+    }
+    
+    user_level = permission_hierarchy.get(user_permission, 1)
+    required_level = permission_hierarchy.get(required_permission, 1)
+    
+    return user_level >= required_level
+
+def ensure_user_exists(username: str, email: str = "", name: str = "", surname: str = "") -> bool:
+    """Upewnij się, że użytkownik istnieje w bazie danych. Jeśli nie, utwórz go z domyślnymi danymi."""
+    if not db:
+        return False
+    
+    try:
+        doc_ref = db.collection(username).document("Dane")
+        doc = doc_ref.get()
+        
+        if doc.exists:
+            print(f"✅ Użytkownik {username} już istnieje w bazie danych")
+            return True
+        
+        print(f"🔄 Tworzenie rekordu dla użytkownika: {username}")
+        
+        # Utwórz nowy rekord użytkownika z domyślnymi danymi
+        now = datetime.now()
+        default_settings = UserSettings(
+            userData=UserData(
+                name=name,
+                surname=surname,
+                email=email,
+                companyName="",
+                googleCard=""
+            ),
+            messaging=MessagingSettings(
+                reminderFrequency=7,
+                messageTemplate="""Bardzo prosimy o zostawienie opinii o naszych usługach: [LINK]
+Wasza opinia ma dla nas ogromne znaczenie i pomoże kolejnym klientom w wyborze.
+
+Dziękujemy!""",
+                autoSendEnabled=False
+            ),
+            permission=UserPermission.DEMO  # Nowi użytkownicy domyślnie mają uprawnienia Demo
+        )
+        
+        # Zapisz ustawienia do bazy danych
+        settings_dict = default_settings.dict()
+        settings_dict.update({
+            "created_at": now,
+            "updated_at": now
+        })
+        
+        doc_ref.set(settings_dict)
+        print(f"✅ Utworzono rekord użytkownika {username} z uprawnieniami Demo")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Błąd podczas tworzenia rekordu użytkownika {username}: {str(e)}")
+        return False
 
 # Załaduj zmienne środowiskowe z pliku .env (jeśli istnieje)
 try:
@@ -183,6 +278,7 @@ class UserData(BaseModel):
     companyName: str = ""
     googleCard: str = ""
 
+
 class TwilioSettings(BaseModel):
     account_sid: str = ""
     auth_token: str = ""
@@ -198,6 +294,7 @@ class UserSettings(BaseModel):
     userData: UserData
     messaging: MessagingSettings
     twilio: Optional[TwilioSettings] = None
+    permission: UserPermission = UserPermission.DEMO  # Domyślnie Demo dla nowych użytkowników
 
 class UserSettingsResponse(BaseModel):
     settings: UserSettings
@@ -745,6 +842,13 @@ async def create_client(username: str, client_data: ClientCreate):
         print("❌ Firebase nie jest skonfigurowany")
         raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
     
+    # Sprawdź uprawnienia użytkownika - Demo może mieć ograniczenia
+    user_permission = get_user_permission_from_db(username)
+    if user_permission == UserPermission.DEMO:
+        print(f"⚠️ Użytkownik {username} ma uprawnienia Demo - sprawdzanie limitów")
+        # Tutaj można dodać logikę sprawdzania limitów dla użytkowników Demo
+        # Na przykład: maksymalna liczba klientów, ograniczenia funkcjonalności
+    
     try:
         # Kolekcja nazywa się tak jak username
         clients_ref = db.collection(username)
@@ -804,6 +908,9 @@ async def get_clients(username: str):
     if not db:
         print("❌ Firebase nie jest skonfigurowany")
         raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    # Upewnij się, że użytkownik istnieje w bazie danych
+    ensure_user_exists(username)
     
     try:
         print(f"📂 Próba dostępu do kolekcji: {username}")
@@ -991,26 +1098,37 @@ async def get_user_settings(username: str):
             print(f"✅ Znaleziono ustawienia: {settings_data}")
             return UserSettingsResponse(settings=UserSettings(**settings_data))
         else:
-            print("ℹ️ Brak ustawień, zwracam domyślne")
-            # Zwróć domyślne ustawienia
-            default_settings = UserSettings(
-                userData=UserData(
-                    name="",
-                    surname="",
-                    email="",
-                    companyName="",
-                    googleCard=""
-                ),
-                messaging=MessagingSettings(
-                    reminderFrequency=7,
-                    messageTemplate="""Bardzo prosimy o zostawienie opinii o naszych usługach: [LINK]
+            print("ℹ️ Brak ustawień, tworzę nowy rekord użytkownika")
+            # Utwórz nowy rekord użytkownika z domyślnymi danymi
+            ensure_user_exists(username)
+            
+            # Pobierz nowo utworzone ustawienia
+            doc = doc_ref.get()
+            if doc.exists:
+                settings_data = doc.to_dict()
+                print(f"✅ Utworzono nowy rekord użytkownika: {settings_data}")
+                return UserSettingsResponse(settings=UserSettings(**settings_data))
+            else:
+                # Fallback - zwróć domyślne ustawienia
+                default_settings = UserSettings(
+                    userData=UserData(
+                        name="",
+                        surname="",
+                        email="",
+                        companyName="",
+                        googleCard=""
+                    ),
+                    messaging=MessagingSettings(
+                        reminderFrequency=7,
+                        messageTemplate="""Bardzo prosimy o zostawienie opinii o naszych usługach: [LINK]
 Wasza opinia ma dla nas ogromne znaczenie i pomoże kolejnym klientom w wyborze.
 
 Dziękujemy!""",
-                    autoSendEnabled=False
-                ),
-            )
-            return UserSettingsResponse(settings=default_settings)
+                        autoSendEnabled=False
+                    ),
+                    permission=UserPermission.DEMO
+                )
+                return UserSettingsResponse(settings=default_settings)
         
     except Exception as e:
         print(f"❌ Błąd podczas pobierania ustawień: {str(e)}")
@@ -1048,6 +1166,336 @@ async def save_user_settings(username: str, settings: UserSettings):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Błąd podczas zapisywania ustawień: {str(e)}")
+
+# Endpointy do zarządzania uprawnieniami użytkowników
+class PermissionUpdateRequest(BaseModel):
+    permission: UserPermission
+
+class PermissionResponse(BaseModel):
+    username: str
+    permission: UserPermission
+    message: str
+
+@app.put("/admin/permissions/{username}", response_model=PermissionResponse)
+async def update_user_permission(username: str, permission_data: PermissionUpdateRequest, admin_username: str = None):
+    """Zaktualizuj uprawnienia użytkownika (tylko dla adminów)"""
+    print(f"🔐 Aktualizacja uprawnień dla użytkownika: {username}")
+    print(f"🔐 Nowe uprawnienia: {permission_data.permission}")
+    print(f"🔐 Admin wykonujący akcję: {admin_username}")
+    
+    if not db:
+        print("❌ Firebase nie jest skonfigurowany")
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    # Sprawdź uprawnienia admina (jeśli podano)
+    if admin_username and not check_user_permission(admin_username, UserPermission.ADMIN):
+        print(f"❌ Użytkownik {admin_username} nie ma uprawnień administratora")
+        raise HTTPException(status_code=403, detail="Brak uprawnień administratora")
+    
+    try:
+        # Sprawdź czy użytkownik istnieje
+        doc_ref = db.collection(username).document("Dane")
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            print(f"❌ Użytkownik {username} nie istnieje")
+            raise HTTPException(status_code=404, detail="Użytkownik nie został znaleziony")
+        
+        # Pobierz obecne ustawienia
+        settings_data = doc.to_dict()
+        settings = UserSettings(**settings_data)
+        
+        # Zaktualizuj uprawnienia
+        settings.permission = permission_data.permission
+        
+        # Zapisz zaktualizowane ustawienia
+        settings_dict = settings.dict()
+        settings_dict.update({
+            "updated_at": datetime.now()
+        })
+        
+        doc_ref.set(settings_dict)
+        print(f"✅ Uprawnienia zaktualizowane pomyślnie dla {username}: {permission_data.permission}")
+        
+        return PermissionResponse(
+            username=username,
+            permission=permission_data.permission,
+            message=f"Uprawnienia użytkownika {username} zostały zaktualizowane na {permission_data.permission}"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Błąd podczas aktualizacji uprawnień: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Błąd podczas aktualizacji uprawnień: {str(e)}")
+
+@app.get("/admin/permissions/{username}", response_model=PermissionResponse)
+async def get_user_permission(username: str):
+    """Pobierz uprawnienia użytkownika"""
+    print(f"🔍 Sprawdzanie uprawnień dla użytkownika: {username}")
+    
+    if not db:
+        print("❌ Firebase nie jest skonfigurowany")
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        doc_ref = db.collection(username).document("Dane")
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            print(f"❌ Użytkownik {username} nie istnieje")
+            raise HTTPException(status_code=404, detail="Użytkownik nie został znaleziony")
+        
+        settings_data = doc.to_dict()
+        settings = UserSettings(**settings_data)
+        
+        print(f"✅ Uprawnienia użytkownika {username}: {settings.permission}")
+        
+        return PermissionResponse(
+            username=username,
+            permission=settings.permission,
+            message=f"Uprawnienia użytkownika {username}: {settings.permission}"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Błąd podczas pobierania uprawnień: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Błąd podczas pobierania uprawnień: {str(e)}")
+
+class UserPermissionInfo(BaseModel):
+    username: str
+    permission: UserPermission
+    permission_level: int
+    can_manage_clients: bool
+    can_send_sms: bool
+    can_access_admin: bool
+    limits: dict
+
+@app.get("/user-permission-info/{username}", response_model=UserPermissionInfo)
+async def get_user_permission_info(username: str):
+    """Pobierz szczegółowe informacje o uprawnieniach użytkownika"""
+    print(f"🔍 Sprawdzanie szczegółowych uprawnień dla użytkownika: {username}")
+    
+    if not db:
+        print("❌ Firebase nie jest skonfigurowany")
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        user_permission = get_user_permission_from_db(username)
+        
+        # Hierarchia uprawnień
+        permission_hierarchy = {
+            UserPermission.ADMIN: 4,
+            UserPermission.PROFESSIONAL: 3,
+            UserPermission.STARTER: 2,
+            UserPermission.DEMO: 1
+        }
+        
+        permission_level = permission_hierarchy.get(user_permission, 1)
+        
+        # Określ możliwości na podstawie uprawnień
+        can_manage_clients = user_permission in [UserPermission.ADMIN, UserPermission.PROFESSIONAL, UserPermission.STARTER]
+        can_send_sms = user_permission in [UserPermission.ADMIN, UserPermission.PROFESSIONAL, UserPermission.STARTER]
+        can_access_admin = user_permission == UserPermission.ADMIN
+        
+        # Określ limity na podstawie uprawnień
+        limits = {}
+        if user_permission == UserPermission.DEMO:
+            limits = {
+                "max_clients": 5,
+                "max_sms_per_month": 10,
+                "features": ["basic_reviews"]
+            }
+        elif user_permission == UserPermission.STARTER:
+            limits = {
+                "max_clients": 50,
+                "max_sms_per_month": 100,
+                "features": ["basic_reviews", "sms_reminders"]
+            }
+        elif user_permission == UserPermission.PROFESSIONAL:
+            limits = {
+                "max_clients": 500,
+                "max_sms_per_month": 1000,
+                "features": ["basic_reviews", "sms_reminders", "advanced_analytics"]
+            }
+        elif user_permission == UserPermission.ADMIN:
+            limits = {
+                "max_clients": -1,  # Bez limitu
+                "max_sms_per_month": -1,  # Bez limitu
+                "features": ["all"]
+            }
+        
+        print(f"✅ Uprawnienia użytkownika {username}: {user_permission} (poziom {permission_level})")
+        
+        return UserPermissionInfo(
+            username=username,
+            permission=user_permission,
+            permission_level=permission_level,
+            can_manage_clients=can_manage_clients,
+            can_send_sms=can_send_sms,
+            can_access_admin=can_access_admin,
+            limits=limits
+        )
+        
+    except Exception as e:
+        print(f"❌ Błąd podczas pobierania informacji o uprawnieniach: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Błąd podczas pobierania informacji o uprawnieniach: {str(e)}")
+
+@app.post("/admin/migrate-user-permissions")
+async def migrate_user_permissions():
+    """Migruj istniejących użytkowników - ustaw im uprawnienia Demo jeśli nie mają uprawnień"""
+    print(f"🔄 Rozpoczynanie migracji uprawnień użytkowników")
+    
+    if not db:
+        print("❌ Firebase nie jest skonfigurowany")
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        migrated_count = 0
+        skipped_count = 0
+        
+        # Pobierz wszystkie kolekcje (użytkowników)
+        collections = db.collections()
+        
+        for collection in collections:
+            collection_name = collection.id
+            print(f"🔍 Sprawdzanie kolekcji: {collection_name}")
+            
+            # Sprawdź czy to jest kolekcja użytkownika (nie systemowa)
+            if collection_name in ["temp_clients", "Dane"]:
+                print(f"⏭️ Pomijanie kolekcji systemowej: {collection_name}")
+                continue
+            
+            # Sprawdź czy użytkownik ma dokument "Dane"
+            doc_ref = collection.document("Dane")
+            doc = doc_ref.get()
+            
+            if doc.exists:
+                settings_data = doc.to_dict()
+                
+                # Sprawdź czy ma już uprawnienia
+                if "permission" not in settings_data:
+                    print(f"🔄 Migracja użytkownika: {collection_name}")
+                    
+                    # Dodaj uprawnienia Demo
+                    settings_data["permission"] = UserPermission.DEMO
+                    settings_data["updated_at"] = datetime.now()
+                    
+                    # Zapisz zaktualizowane ustawienia
+                    doc_ref.set(settings_data)
+                    migrated_count += 1
+                    print(f"✅ Użytkownik {collection_name} zmigrowany do uprawnień Demo")
+                else:
+                    print(f"⏭️ Użytkownik {collection_name} już ma uprawnienia: {settings_data.get('permission')}")
+                    skipped_count += 1
+            else:
+                print(f"⚠️ Użytkownik {collection_name} nie ma dokumentu Dane")
+        
+        print(f"✅ Migracja zakończona: {migrated_count} zmigrowanych, {skipped_count} pominiętych")
+        
+        return {
+            "message": "Migracja uprawnień zakończona pomyślnie",
+            "migrated_count": migrated_count,
+            "skipped_count": skipped_count,
+            "total_processed": migrated_count + skipped_count
+        }
+        
+    except Exception as e:
+        print(f"❌ Błąd podczas migracji uprawnień: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Błąd podczas migracji uprawnień: {str(e)}")
+
+# Endpoint do tworzenia rekordu użytkownika po rejestracji
+class UserRegistrationData(BaseModel):
+    username: str
+    email: str
+    name: str = ""
+    surname: str = ""
+
+class UserRegistrationResponse(BaseModel):
+    success: bool
+    message: str
+    username: str
+    permission: UserPermission
+
+@app.post("/register-user", response_model=UserRegistrationResponse)
+async def register_user(user_data: UserRegistrationData):
+    """Utwórz rekord użytkownika w bazie danych po rejestracji"""
+    print(f"👤 Rejestracja nowego użytkownika: {user_data.username}")
+    print(f"📧 Email: {user_data.email}")
+    
+    if not db:
+        print("❌ Firebase nie jest skonfigurowany")
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Sprawdź czy użytkownik już istnieje
+        doc_ref = db.collection(user_data.username).document("Dane")
+        doc = doc_ref.get()
+        
+        if doc.exists:
+            print(f"⚠️ Użytkownik {user_data.username} już istnieje w bazie danych")
+            # Pobierz istniejące uprawnienia
+            settings_data = doc.to_dict()
+            settings = UserSettings(**settings_data)
+            return UserRegistrationResponse(
+                success=True,
+                message="Użytkownik już istnieje w bazie danych",
+                username=user_data.username,
+                permission=settings.permission
+            )
+        
+        # Utwórz nowy rekord użytkownika z domyślnymi danymi
+        now = datetime.now()
+        default_settings = UserSettings(
+            userData=UserData(
+                name=user_data.name,
+                surname=user_data.surname,
+                email=user_data.email,
+                companyName="",
+                googleCard=""
+            ),
+            messaging=MessagingSettings(
+                reminderFrequency=7,
+                messageTemplate="""Bardzo prosimy o zostawienie opinii o naszych usługach: [LINK]
+Wasza opinia ma dla nas ogromne znaczenie i pomoże kolejnym klientom w wyborze.
+
+Dziękujemy!""",
+                autoSendEnabled=False
+            ),
+            permission=UserPermission.DEMO  # Nowi użytkownicy domyślnie mają uprawnienia Demo
+        )
+        
+        # Zapisz ustawienia do bazy danych
+        settings_dict = default_settings.dict()
+        settings_dict.update({
+            "created_at": now,
+            "updated_at": now
+        })
+        
+        doc_ref.set(settings_dict)
+        print(f"✅ Użytkownik {user_data.username} zarejestrowany z uprawnieniami Demo")
+        
+        return UserRegistrationResponse(
+            success=True,
+            message=f"Użytkownik {user_data.username} został pomyślnie zarejestrowany",
+            username=user_data.username,
+            permission=UserPermission.DEMO
+        )
+        
+    except Exception as e:
+        print(f"❌ Błąd podczas rejestracji użytkownika: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Błąd podczas rejestracji użytkownika: {str(e)}")
 
 # Endpointy dla formularza ocen
 @app.get("/review/{review_code}")

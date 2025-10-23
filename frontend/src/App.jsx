@@ -182,21 +182,26 @@ function AppContent() {
   }, []);
 
 
-  // Obsługa scroll - standardowe zachowanie
+  // Obsługa scroll z histerezą - zapobiega migotaniu
   useEffect(() => {
     let ticking = false;
     
     const handleScroll = () => {
       if (!ticking) {
         requestAnimationFrame(() => {
-          const scrolled = window.scrollY > 50;
+          const currentScrollY = window.scrollY;
           
-          // Zmień stan tylko jeśli rzeczywiście się zmienił
+          // Histereza: różne progi dla przewijania w górę i w dół
+          const scrollDownThreshold = 10;  // Próg dla przewijania w dół
+          const scrollUpThreshold = 50;     // Próg dla przewijania w górę (niższy)
+          
           setIsScrolled(prevScrolled => {
-            if (prevScrolled !== scrolled) {
-              return scrolled;
+            if (!prevScrolled && currentScrollY > scrollDownThreshold) {
+              return true;  // Przewijanie w dół - aktywuj scrolled
+            } else if (prevScrolled && currentScrollY < scrollUpThreshold) {
+              return false; // Przewijanie w górę - dezaktywuj scrolled
             }
-            return prevScrolled;
+            return prevScrolled; // Bez zmian
           });
           
           ticking = false;
@@ -359,23 +364,21 @@ function AppContent() {
                   <div className="hero-content fade-in-up">
                     <div className="hero-text">
                       <h1 className="hero-title">
-                        Opinia 5/5 = większa sprzedaż
+                      Zrób z opinii silnik sprzedaży, bo 5⭐/5⭐ = więcej klientów.
                       </h1>
-                      <p className="hero-subtitle"><b>Zgadzasz się?</b></p>
+                      <p className="hero-subtitle"><b>Automatycznie zbieraj pozytywne recenzje, reaguj na negatywne i buduj reputację, która sprzedaje.</b></p>
 
 
                       <p className="hero-subtitle">
-                      NEXT reviews BOOSTER to platforma, która <b>robi za Ciebie całą robotę z opiniami</b>. Wyobraź sobie asystenta, który automatycznie <b>zbiera pozytywne recenzje</b> od zadowolonych klientów, a te <b>złe zostawia tylko dla Ciebie</b>, tak abyś mógł szybko i sprawnie zareagować <b>gasząc potencjalny pożar</b>.
+                      <b>NEXT reviews BOOSTER to platforma,</b> która robi za Ciebie <b>całą robotę z opiniami.</b> Wyobraź sobie asystenta, który <b>automatycznie zbiera pozytywne recenzje</b> od zadowolonych klientów, analizuje feedback i <b>ostrzega Cię o problemach</b> – zanim staną się kryzysem. <b>Zyskujesz</b> nie tylko więcej ocen 5⭐, ale też <b>czas i przestrzeń</b>, by spokojnie reagować na <b>trudne opinie</b>. Dzięki temu możesz <b>ulepszać procesy w firmie,</b> <b>zwiększać satysfakcję klientów</b> i zapobiegać powtarzającym się błędom.
                       </p>
                       
                       <div className="hero-buttons">
-                        <Link to="/register" className="btn btn-primary btn-large">
-                          Rozpocznij bezpłatny okres próbny
+                        <Link to="/register" className="btn btn-primary btn-large heartbeat">
+                          Zacznij darmowy okres próbny
                         </Link>
-                        {/* <button className="btn btn-secondary btn-large">
-                          Zobacz demo
-                        </button> */}
                       </div>
+                      <p className="hero-subtitle">Przekonaj się, jak łatwo można zapanować nad opiniami online — zanim one zapanują nad Tobą.</p>
                     </div>
                     
                     <div className="hero-visual">
@@ -635,7 +638,7 @@ function AppContent() {
                         <i data-feather="shield"></i>
                       </div>
                       <h3>Inteligentne filtrowanie</h3>
-                      <p>Pozytywne recenzje (5 gwiazdek) <strong>trafiają na Google</strong>. Negatywne zostają tylko u Ciebie - <strong>Masz wpływ na Twoją reputację. Zadziałaj</strong>!</p>
+                      <p>Dobre opinie idą w świat, trudne zostają z Tobą. Masz szansę zareagować i naprawić sytuację, zanim zobaczą ją inni.</p>
                     </div>
                     
                     <div className="feature-card">
@@ -1001,6 +1004,7 @@ function AppContent() {
                           Skontaktuj się z nami
                         </Link>
                       </div>
+                      <p className="sms-cost-note">+50zł koszt wysłanych wiadomości SMS</p>
                     </div>
                     
                     <div className="pricing-card featured">
@@ -1015,7 +1019,7 @@ function AppContent() {
                       </div>
                       <div className="pricing-features">
                         <ul>
-                          <li>⭐ Do 200 wysłanych wiadomości SMS miesięcznie</li>
+                          <li>⭐ Do 100 wysłanych wiadomości SMS miesięcznie</li>
                           <li>⭐ Kody QR dla firmy</li>
                           <li>⭐ Zaawansowane filtrowanie</li>
                           <li>⭐ Do 300 klientów w bazie danych</li>
@@ -1028,6 +1032,7 @@ function AppContent() {
                           Skontaktuj się z nami
                         </Link>
                       </div>
+                      <p className="sms-cost-note">+100zł koszt wysłanych wiadomości SMS</p>
                     </div>
                     
                     <div className="pricing-card">

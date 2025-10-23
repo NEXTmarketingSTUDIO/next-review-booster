@@ -38,6 +38,55 @@
   color: currentColor;
 }
 
+/* Animacja pulsowania serca */
+@keyframes heartbeat {
+  0% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.1);
+  }
+  28% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.1);
+  }
+  70% {
+    transform: scale(1);
+  }
+}
+
+.heartbeat {
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+.heartbeat-slow {
+  animation: heartbeat 2s ease-in-out infinite;
+}
+
+.heartbeat-fast {
+  animation: heartbeat 1s ease-in-out infinite;
+}
+
+/* Style dla ikony serca */
+.heart-emoji {
+  display: inline-block;
+  margin-right: 0.5rem;
+  font-size: 1.2em;
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+/* Animacja pulsowania dla przycisku z sercem */
+.btn.heartbeat {
+  position: relative;
+  overflow: visible;
+}
+
+.btn.heartbeat:hover .heart-emoji {
+  animation: heartbeat 0.8s ease-in-out infinite;
+}
+
 /* Feature cards improvements */
 .feature-icon {
   display: flex;
@@ -99,27 +148,10 @@
   top: 0;
   z-index: 100;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  transition: background 0.3s ease, padding 0.3s ease, box-shadow 0.3s ease;
+  transition: background 0.4s ease, padding 0.4s ease, box-shadow 0.4s ease;
   will-change: background, padding, box-shadow;
 }
 
-.navigation.scrolled {
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(25px);
-  padding: 0.75rem 0;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  border-bottom: 1px solid rgba(255, 165, 0, 0.2);
-}
-
-.navigation.scrolled .logo-image {
-  height: 70px;
-}
-
-.navigation.scrolled .nav-links a,
-.navigation.scrolled .nav-links .nav-link {
-  padding: 0.6rem 1rem;
-  font-size: 0.95rem;
-}
 
 .nav-content {
   display: flex;
@@ -215,7 +247,7 @@
   height: 120px; 
   width: auto;
   object-fit: contain;
-  transition: all 0.3s ease;
+  transition: height 0.4s ease, transform 0.3s ease;
 }
 
 .logo-image:hover {
@@ -414,7 +446,7 @@ html {
 .hero-content {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 4rem;
+  gap: 1rem;
   align-items: center;
   width: 100%;
 }
@@ -1943,6 +1975,15 @@ html {
 
 .pricing-cta {
   margin-top: auto;
+}
+
+.sms-cost-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 1rem;
+  margin-bottom: 0;
+  text-align: center;
+  font-weight: 400;
 }
 
 /* Contact Section */
