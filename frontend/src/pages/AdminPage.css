@@ -29,8 +29,26 @@
 
 .admin-title p {
   color: #6b7280;
-  margin: 0;
+  margin: 0 0 0.5rem 0;
   font-size: 1rem;
+}
+
+.admin-exchange-rate {
+  font-size: 0.9rem;
+  color: #28a745;
+  margin-top: 0.5rem;
+}
+
+.admin-rate-date {
+  color: #6b7280;
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
+}
+
+.admin-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .admin-refresh-btn {
@@ -659,6 +677,51 @@
   display: flex;
   gap: 0.5rem;
   align-items: center;
+}
+
+/* Style dla kosztów SMS */
+.admin-user-sms-cost {
+  font-weight: 600;
+  color: #28a745;
+  font-size: 0.95rem;
+}
+
+.admin-user-sms-cost-detail {
+  font-weight: 400;
+  color: #6c757d;
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
+}
+
+/* Specjalny styl dla karty kosztów w statystykach */
+.admin-stat-cost {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+}
+
+.admin-stat-cost .admin-stat-number {
+  color: white;
+}
+
+.admin-stat-cost .admin-stat-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Specjalny styl dla karty segmentów */
+.admin-stat-segments {
+  background: linear-gradient(135deg, #17a2b8, #007bff);
+  color: white;
+  border: none;
+}
+
+.admin-stat-segments .admin-stat-number {
+  color: white;
+}
+
+.admin-stat-segments .admin-stat-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.8rem;
 }
 
 /* Animacja rozwijania */

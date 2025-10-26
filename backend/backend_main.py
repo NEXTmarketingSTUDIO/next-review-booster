@@ -2721,6 +2721,7 @@ async def get_all_users():
                         },
                         "smsLimit": messaging_settings.get("smsLimit", 10),
                         "smsCount": messaging_settings.get("smsCount", 0),
+                        "messageTemplate": messaging_settings.get("messageTemplate", ""),
                         "clientsCount": clients_count,
                         "created_at": settings_data.get("created_at", ""),
                         "updated_at": settings_data.get("updated_at", "")

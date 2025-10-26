@@ -13,6 +13,9 @@ const AdminPage = () => {
   const [expandedUsers, setExpandedUsers] = useState(new Set());
   const [userStatistics, setUserStatistics] = useState({});
   const [loadingStats, setLoadingStats] = useState(new Set());
+  const [exchangeRate, setExchangeRate] = useState(4.0); // Domyślny kurs USD/PLN
+  const [lastRateUpdate, setLastRateUpdate] = useState(null);
+  const [loadingRate, setLoadingRate] = useState(false);
   const [editForm, setEditForm] = useState({
     permission: '',
     twilio: {
@@ -25,6 +28,7 @@ const AdminPage = () => {
 
   useEffect(() => {
     fetchUsers();
+    fetchExchangeRate();
   }, []);
 
   const fetchUsers = async () => {
@@ -47,6 +51,36 @@ const AdminPage = () => {
       setError('Błąd połączenia z serwerem');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchExchangeRate = async () => {
+    setLoadingRate(true);
+    
+    try {
+      console.log('💱 AdminPage: Pobieranie kursu USD/PLN z NBP...');
+      
+      // API NBP dla kursu USD
+      const response = await fetch('https://api.nbp.pl/api/exchangerates/rates/a/usd/?format=json');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const rate = data.rates[0].mid; // Kurs średni NBP
+      const date = data.rates[0].effectiveDate;
+      
+      setExchangeRate(rate);
+      setLastRateUpdate(new Date(date));
+      
+      console.log(`✅ AdminPage: Kurs USD/PLN: ${rate} (${date})`);
+    } catch (err) {
+      console.error('❌ AdminPage: Błąd pobierania kursu NBP:', err);
+      // Pozostaw domyślny kurs 4.0
+      console.log('⚠️ AdminPage: Używam domyślnego kursu 4.0 PLN');
+    } finally {
+      setLoadingRate(false);
     }
   };
 
@@ -176,6 +210,58 @@ const AdminPage = () => {
     }
   };
 
+  const calculateSMSCost = (user) => {
+    const messageTemplate = user.messageTemplate || '';
+    const companyName = user.companyName || '';
+    const smsCount = user.smsCount || 0;
+    
+    if (!messageTemplate || messageTemplate.trim() === '' || smsCount === 0) {
+      return { 
+        totalCost: 0, 
+        totalCostPLN: 0,
+        segments: 0, 
+        costPerSMS: 0,
+        costPerSMSPLN: 0,
+        hasPolishChars: false 
+      };
+    }
+
+    // Podstaw zmienne na rzeczywiste wartości
+    const processedMessage = messageTemplate
+      .replace(/\[LINK\]/g, 'next-reviews-booster.com/review/vqyrdqrhf4')
+      .replace(/\[NAZWA_FIRMY\]/g, companyName || '[NAZWA_FIRMY]');
+
+    // Sprawdź czy wiadomość zawiera polskie znaki
+    const polishCharsRegex = /[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/;
+    const hasPolishChars = polishCharsRegex.test(processedMessage);
+    
+    // Określ limit znaków na segment
+    const charsPerSegment = hasPolishChars ? 67 : 153;
+    
+    // Oblicz liczbę segmentów na jedną wiadomość
+    const segments = Math.ceil(processedMessage.length / charsPerSegment);
+    
+    // Koszt za segment: $0.0431
+    const costPerSegment = 0.0431;
+    const costPerSMS = segments * costPerSegment;
+    const totalCost = costPerSMS * smsCount;
+    
+    // Przelicz na PLN
+    const costPerSMSPLN = costPerSMS * exchangeRate;
+    const totalCostPLN = totalCost * exchangeRate;
+    
+    return {
+      totalCost,
+      totalCostPLN,
+      segments,
+      costPerSMS,
+      costPerSMSPLN,
+      hasPolishChars,
+      processedMessageLength: processedMessage.length,
+      charsPerSegment
+    };
+  };
+
   return (
     <div className="admin-page">
       <div className="admin-header">
@@ -183,20 +269,43 @@ const AdminPage = () => {
           <div className="admin-title">
             <h1>Panel Administratora</h1>
             <p>Zarządzanie użytkownikami i ich uprawnieniami</p>
+            <div className="admin-exchange-rate">
+              💱 Kurs USD/PLN: <strong>{exchangeRate.toFixed(4)} zł</strong>
+              {lastRateUpdate && (
+                <span className="admin-rate-date">
+                  ({lastRateUpdate.toLocaleDateString('pl-PL')})
+                </span>
+              )}
+            </div>
           </div>
-          <button 
-            className="admin-refresh-btn"
-            onClick={fetchUsers}
-            disabled={loading}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-              <path d="M21 3v5h-5"></path>
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-              <path d="M3 21v-5h5"></path>
-            </svg>
-            {loading ? 'Odświeżanie...' : 'Odśwież'}
-          </button>
+          <div className="admin-header-actions">
+            <button 
+              className="admin-refresh-btn admin-btn-secondary"
+              onClick={fetchExchangeRate}
+              disabled={loadingRate}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2v6l3-3m-3 3-3-3"></path>
+                <path d="M12 18v6"></path>
+                <path d="M21 12h-6l3-3m-3 3 3 3"></path>
+                <path d="M3 12h6"></path>
+              </svg>
+              {loadingRate ? 'Pobieranie...' : 'Aktualizuj kurs'}
+            </button>
+            <button 
+              className="admin-refresh-btn"
+              onClick={fetchUsers}
+              disabled={loading}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                <path d="M21 3v5h-5"></path>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                <path d="M3 21v-5h5"></path>
+              </svg>
+              {loading ? 'Odświeżanie...' : 'Odśwież użytkowników'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -358,16 +467,22 @@ const AdminPage = () => {
                     </div>
                     
                     <div className="admin-user-detail">
-                      <span className="admin-user-detail-label">Twilio:</span>
-                      {user.twilio?.account_sid ? (
-                        <span className="admin-user-twilio-status admin-user-twilio-active">
-                          ✅ Skonfigurowane
+                      <span className="admin-user-detail-label">Koszty SMS:</span>
+                      <span className="admin-user-sms-cost">
+                        {(() => {
+                          const costData = calculateSMSCost(user);
+                          return costData.totalCostPLN.toFixed(2);
+                        })()} zł
+                        <span className="admin-user-sms-cost-detail">
+                          ({user.smsCount || 0} SMS × {(() => {
+                            const costData = calculateSMSCost(user);
+                            return costData.segments;
+                          })()} seg × {(() => {
+                            const costData = calculateSMSCost(user);
+                            return (costData.costPerSMS * exchangeRate).toFixed(4);
+                          })()} zł)
                         </span>
-                      ) : (
-                        <span className="admin-user-twilio-status admin-user-twilio-inactive">
-                          ❌ Brak konfiguracji
-                        </span>
-                      )}
+                      </span>
                     </div>
                     
                     <div className="admin-user-detail">
@@ -459,6 +574,41 @@ const AdminPage = () => {
                                 {userStatistics[user.username]?.conversion_rate || 0}%
                               </div>
                               <div className="admin-stat-label">Wskaźnik konwersji</div>
+                            </div>
+                          </div>
+                          
+                          <div className="admin-stat-item admin-stat-cost">
+                            <div className="admin-stat-icon">💰</div>
+                            <div className="admin-stat-content">
+                              <div className="admin-stat-number">
+                                {(() => {
+                                  const statsBasedUser = {
+                                    ...user,
+                                    smsCount: userStatistics[user.username]?.sms_sent || 0
+                                  };
+                                  return calculateSMSCost(statsBasedUser).totalCostPLN.toFixed(2);
+                                })()} zł
+                              </div>
+                              <div className="admin-stat-label">Łączne koszty SMS</div>
+                            </div>
+                          </div>
+                          
+                          <div className="admin-stat-item admin-stat-segments">
+                            <div className="admin-stat-icon">📋</div>
+                            <div className="admin-stat-content">
+                              <div className="admin-stat-number">
+                                {(() => {
+                                  const costData = calculateSMSCost(user);
+                                  return costData.segments;
+                                })()}
+                              </div>
+                              <div className="admin-stat-label">
+                                Segmentów na SMS
+                                {(() => {
+                                  const costData = calculateSMSCost(user);
+                                  return costData.hasPolishChars ? ' (polskie znaki)' : ' (standard)';
+                                })()}
+                              </div>
                             </div>
                           </div>
                         </div>
