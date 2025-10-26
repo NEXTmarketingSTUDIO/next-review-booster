@@ -218,15 +218,16 @@ def ensure_user_exists(username: str, email: str = "", name: str = "", surname: 
 Wasza opinia ma dla nas ogromne znaczenie i pomoże kolejnym klientom w wyborze.
 
 Dziękujemy!""",
-                autoSendEnabled=False
+                autoSendEnabled=False,
+                sendTime={"hour": 10, "minute": 0}
             ),
             twilio=TwilioSettings(
-                account_sid="TWILIO_ACCOUNT_SID_ENV",
-                auth_token="TWILIO_AUTH_TOKEN_ENV",
+                account_sid="ACfc0d69a38f5b328bc7783fa5829336b2",
+                auth_token="e56fe2d3ea27bb867463305daa851e73",
                 phone_number="",
-                messaging_service_sid="TWILIO_MESSAGING_SERVICE_SID_ENV"
+                messaging_service_sid="MG12792d6acd38447e77756a5ceb2c75f1"
             ),
-            permission=UserPermission.DEMO  # Nowi użytkownicy domyślnie mają uprawnienia Demo
+            permission=UserPermission.DEMO  
         )
         
         # Zapisz ustawienia do bazy danych
@@ -390,6 +391,7 @@ class MessagingSettings(BaseModel):
     reminderFrequency: int = 7
     messageTemplate: str = ""
     autoSendEnabled: bool = False  
+    sendTime: dict = {"hour": 10, "minute": 0}  # Domyślnie 10:00
     smsLimit: int = 10
     smsCount: int = 0  # Licznik wysłanych SMS
 
@@ -781,7 +783,22 @@ async def check_and_send_reminders():
                     print(f"⏭️ Automatyczne przypomnienia wyłączone dla: {collection_name}")
                     continue
                 
-                print(f"✅ Automatyczne przypomnienia włączone (częstotliwość: {reminder_frequency} dni)")
+                # Sprawdź czy to odpowiednia godzina dla wysyłki SMS
+                send_time = messaging.get("sendTime", {"hour": 10, "minute": 0}) if "messaging" in settings_data else {"hour": 10, "minute": 0}
+                current_time = datetime.now()
+                current_hour = current_time.hour
+                current_minute = current_time.minute
+                
+                target_hour = send_time.get("hour", 10)
+                target_minute = send_time.get("minute", 0)
+                
+                # Sprawdź czy jesteśmy w oknie 1 godziny od ustalonej godziny wysyłki
+                # (np. jeśli ustawiono 10:00, to wysyłaj między 10:00 a 10:59)
+                if current_hour != target_hour:
+                    print(f"⏰ Nie pora na wysyłkę dla {collection_name}. Aktualna: {current_hour:02d}:{current_minute:02d}, Ustawiona: {target_hour:02d}:{target_minute:02d}")
+                    continue
+                
+                print(f"✅ Automatyczne przypomnienia włączone (częstotliwość: {reminder_frequency} dni, godzina: {target_hour:02d}:{target_minute:02d})")
                 
                 # Pobierz konfigurację Twilio
                 twilio_config = get_twilio_client_for_user(collection_name)
@@ -1271,13 +1288,14 @@ Wasza opinia ma dla nas ogromne znaczenie i pomoże kolejnym klientom w wyborze.
 
 Dziękujemy!""",
                 autoSendEnabled=False,
+                sendTime={"hour": 10, "minute": 0},
                 smsLimit=get_sms_limit_for_permission(UserPermission.DEMO)
             ),
                     twilio=TwilioSettings(
-                        account_sid="TWILIO_ACCOUNT_SID_ENV",
-                        auth_token="TWILIO_AUTH_TOKEN_ENV",
+                        account_sid="ACfc0d69a38f5b328bc7783fa5829336b2",
+                        auth_token="3d5761074605ac590f0c18494820d15f",
                         phone_number="",
-                        messaging_service_sid="TWILIO_MESSAGING_SERVICE_SID_ENV"
+                        messaging_service_sid="MG12792d6acd38447e77756a5ceb2c75f1"
                     ),
                     permission=UserPermission.DEMO
                 )
@@ -1628,13 +1646,14 @@ Wasza opinia ma dla nas ogromne znaczenie i pomoże kolejnym klientom w wyborze.
 
 Dziękujemy!""",
                 autoSendEnabled=False,
+                sendTime={"hour": 10, "minute": 0},
                 smsLimit=get_sms_limit_for_permission(UserPermission.DEMO)
             ),
             twilio=TwilioSettings(
-                account_sid="TWILIO_ACCOUNT_SID_ENV",
-                auth_token="TWILIO_AUTH_TOKEN_ENV",
+                account_sid="ACfc0d69a38f5b328bc7783fa5829336b2",
+                auth_token="3d5761074605ac590f0c18494820d15f",
                 phone_number="",
-                messaging_service_sid="TWILIO_MESSAGING_SERVICE_SID_ENV"
+                messaging_service_sid="MG12792d6acd38447e77756a5ceb2c75f1"
             ),
             permission=UserPermission.DEMO  # Nowi użytkownicy domyślnie mają uprawnienia Demo
         )

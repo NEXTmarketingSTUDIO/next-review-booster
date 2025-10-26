@@ -639,3 +639,77 @@
     grid-column: 1;
   }
 }
+
+/* Style dla selektora godziny */
+.time-selector {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.time-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.time-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.time-input-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0;
+}
+
+.time-select {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background: white;
+  font-size: 1rem;
+  min-width: 70px;
+  text-align: center;
+}
+
+.time-select:focus {
+  outline: none;
+  border-color: #fca212;
+  box-shadow: 0 0 0 2px rgba(252, 162, 18, 0.2);
+}
+
+.time-separator {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #495057;
+  padding: 0 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .time-inputs {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .time-separator {
+    display: none;
+  }
+  
+  .time-input-group {
+    align-items: center;
+  }
+  
+  .time-select {
+    width: 100%;
+    max-width: 120px;
+  }
+}

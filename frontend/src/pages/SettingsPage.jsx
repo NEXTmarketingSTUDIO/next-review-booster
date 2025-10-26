@@ -24,7 +24,11 @@ const SettingsPage = () => {
 Wasza opinia ma dla nas ogromne znaczenie i pomoże kolejnym klientom w wyborze.
 
 Dziękujemy!`,
-      autoSendEnabled: false
+      autoSendEnabled: false,
+      sendTime: {
+        hour: 10,
+        minute: 0
+      }
     },
     // Konfiguracja Twilio
     twilio: {
@@ -157,6 +161,19 @@ Dziękujemy!`,
       messaging: {
         ...prev.messaging,
         reminderFrequency: parseInt(value)
+      }
+    }));
+  };
+
+  const handleTimeChange = (field, value) => {
+    setSettings(prev => ({
+      ...prev,
+      messaging: {
+        ...prev.messaging,
+        sendTime: {
+          ...prev.messaging.sendTime,
+          [field]: parseInt(value)
+        }
       }
     }));
   };
@@ -416,6 +433,48 @@ Dziękujemy!`,
                 Automatycznie wysyłaj SMS-y z przypomnieniami o opiniach
               </small>
             </div>
+
+            {settings.messaging.autoSendEnabled && (
+              <div className="form-group time-selector">
+                <label htmlFor="sendTime">Godzina wysyłania automatycznych SMS-ów</label>
+                <div className="time-inputs">
+                  <div className="time-input-group">
+                    <label htmlFor="sendHour">Godzina</label>
+                    <select
+                      id="sendHour"
+                      value={settings.messaging.sendTime.hour}
+                      onChange={(e) => handleTimeChange('hour', e.target.value)}
+                      className="time-select"
+                    >
+                      {Array.from({ length: 24 }, (_, i) => (
+                        <option key={i} value={i}>
+                          {i.toString().padStart(2, '0')}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="time-separator">:</div>
+                  <div className="time-input-group">
+                    <label htmlFor="sendMinute">Minuta</label>
+                    <select
+                      id="sendMinute"
+                      value={settings.messaging.sendTime.minute}
+                      onChange={(e) => handleTimeChange('minute', e.target.value)}
+                      className="time-select"
+                    >
+                      {Array.from({ length: 60 }, (_, i) => (
+                        <option key={i} value={i}>
+                          {i.toString().padStart(2, '0')}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <small className="help-text">
+                  SMS-y będą wysyłane codziennie o godzinie {settings.messaging.sendTime.hour.toString().padStart(2, '0')}:{settings.messaging.sendTime.minute.toString().padStart(2, '0')}
+                </small>
+              </div>
+            )}
           </div>
 
           {/* Przyciski akcji */}

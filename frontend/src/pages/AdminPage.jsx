@@ -10,6 +10,9 @@ const AdminPage = () => {
   const [error, setError] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [expandedUsers, setExpandedUsers] = useState(new Set());
+  const [userStatistics, setUserStatistics] = useState({});
+  const [loadingStats, setLoadingStats] = useState(new Set());
   const [editForm, setEditForm] = useState({
     permission: '',
     twilio: {
@@ -45,6 +48,59 @@ const AdminPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchUserStatistics = async (username) => {
+    setLoadingStats(prev => new Set([...prev, username]));
+    
+    try {
+      console.log('📊 AdminPage: Pobieranie statystyk dla:', username);
+      const stats = await apiService.getUserStatistics(username);
+      
+      setUserStatistics(prev => ({
+        ...prev,
+        [username]: stats
+      }));
+      
+      console.log('✅ AdminPage: Statystyki pobrane dla:', username, stats);
+    } catch (err) {
+      console.error('❌ AdminPage: Błąd pobierania statystyk dla:', username, err);
+      setUserStatistics(prev => ({
+        ...prev,
+        [username]: {
+          total_clients: 0,
+          total_reviews: 0,
+          average_rating: 0,
+          reviews_this_month: 0,
+          sms_sent: 0,
+          conversion_rate: 0
+        }
+      }));
+    } finally {
+      setLoadingStats(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(username);
+        return newSet;
+      });
+    }
+  };
+
+  const toggleUserExpansion = async (username) => {
+    const newExpanded = new Set(expandedUsers);
+    
+    if (expandedUsers.has(username)) {
+      // Zwijaj
+      newExpanded.delete(username);
+    } else {
+      // Rozwijaj
+      newExpanded.add(username);
+      // Pobierz statystyki jeśli jeszcze ich nie ma
+      if (!userStatistics[username]) {
+        await fetchUserStatistics(username);
+      }
+    }
+    
+    setExpandedUsers(newExpanded);
   };
 
   const handleEditUser = (user) => {
@@ -261,6 +317,23 @@ const AdminPage = () => {
                     </div>
                     <div className="admin-user-actions">
                       <button 
+                        className="admin-btn admin-btn-sm admin-btn-secondary"
+                        onClick={() => toggleUserExpansion(user.username)}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          {expandedUsers.has(user.username) ? (
+                            <>
+                              <polyline points="18,15 12,9 6,15"></polyline>
+                            </>
+                          ) : (
+                            <>
+                              <polyline points="6,9 12,15 18,9"></polyline>
+                            </>
+                          )}
+                        </svg>
+                        {expandedUsers.has(user.username) ? 'Zwiń' : 'Rozwiń'}
+                      </button>
+                      <button 
                         className="admin-btn admin-btn-sm admin-btn-primary"
                         onClick={() => handleEditUser(user)}
                       >
@@ -314,6 +387,84 @@ const AdminPage = () => {
                       </span>
                     </div>
                   </div>
+                  
+                  {/* Rozwijalne statystyki */}
+                  {expandedUsers.has(user.username) && (
+                    <div className="admin-user-statistics">
+                      <div className="admin-user-statistics-header">
+                        <h4>📊 Szczegółowe statystyki</h4>
+                      </div>
+                      
+                      {loadingStats.has(user.username) ? (
+                        <div className="admin-stats-loading">
+                          <div className="admin-loading-spinner"></div>
+                          <p>Ładowanie statystyk...</p>
+                        </div>
+                      ) : (
+                        <div className="admin-stats-grid">
+                          <div className="admin-stat-item">
+                            <div className="admin-stat-icon">👥</div>
+                            <div className="admin-stat-content">
+                              <div className="admin-stat-number">
+                                {userStatistics[user.username]?.total_clients || 0}
+                              </div>
+                              <div className="admin-stat-label">Łączna liczba klientów</div>
+                            </div>
+                          </div>
+                          
+                          <div className="admin-stat-item">
+                            <div className="admin-stat-icon">⭐</div>
+                            <div className="admin-stat-content">
+                              <div className="admin-stat-number">
+                                {userStatistics[user.username]?.total_reviews || 0}
+                              </div>
+                              <div className="admin-stat-label">Wystawione opinie</div>
+                            </div>
+                          </div>
+                          
+                          <div className="admin-stat-item">
+                            <div className="admin-stat-icon">📈</div>
+                            <div className="admin-stat-content">
+                              <div className="admin-stat-number">
+                                {userStatistics[user.username]?.average_rating || 0}
+                              </div>
+                              <div className="admin-stat-label">Średnia ocena</div>
+                            </div>
+                          </div>
+                          
+                          <div className="admin-stat-item">
+                            <div className="admin-stat-icon">📅</div>
+                            <div className="admin-stat-content">
+                              <div className="admin-stat-number">
+                                {userStatistics[user.username]?.reviews_this_month || 0}
+                              </div>
+                              <div className="admin-stat-label">Opinie w tym miesiącu</div>
+                            </div>
+                          </div>
+                          
+                          <div className="admin-stat-item">
+                            <div className="admin-stat-icon">📱</div>
+                            <div className="admin-stat-content">
+                              <div className="admin-stat-number">
+                                {userStatistics[user.username]?.sms_sent || 0}
+                              </div>
+                              <div className="admin-stat-label">Wysłane SMS-y</div>
+                            </div>
+                          </div>
+                          
+                          <div className="admin-stat-item">
+                            <div className="admin-stat-icon">🎯</div>
+                            <div className="admin-stat-content">
+                              <div className="admin-stat-number">
+                                {userStatistics[user.username]?.conversion_rate || 0}%
+                              </div>
+                              <div className="admin-stat-label">Wskaźnik konwersji</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
