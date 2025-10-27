@@ -693,6 +693,12 @@
   margin-left: 0.5rem;
 }
 
+.admin-cost-error {
+  color: #dc3545;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
 /* Specjalny styl dla karty kosztów w statystykach */
 .admin-stat-cost {
   background: linear-gradient(135deg, #28a745, #20c997);

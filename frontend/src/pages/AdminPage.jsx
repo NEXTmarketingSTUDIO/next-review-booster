@@ -13,7 +13,7 @@ const AdminPage = () => {
   const [expandedUsers, setExpandedUsers] = useState(new Set());
   const [userStatistics, setUserStatistics] = useState({});
   const [loadingStats, setLoadingStats] = useState(new Set());
-  const [exchangeRate, setExchangeRate] = useState(4.0); // Domyślny kurs USD/PLN
+  const [exchangeRate, setExchangeRate] = useState(4.0); 
   const [lastRateUpdate, setLastRateUpdate] = useState(null);
   const [loadingRate, setLoadingRate] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -215,14 +215,59 @@ const AdminPage = () => {
     const companyName = user.companyName || '';
     const smsCount = user.smsCount || 0;
     
-    if (!messageTemplate || messageTemplate.trim() === '' || smsCount === 0) {
+    if (!messageTemplate || messageTemplate.trim() === '') {
+      // Użyj domyślnego szablonu jeśli brak
+      const defaultTemplate = `Bardzo prosimy o zostawienie opinii o naszych usługach: [LINK]
+Wasza opinia ma dla nas ogromne znaczenie i pomoże kolejnym klientom w wyborze.
+
+Dziękujemy!`;
+      
+      // Podstaw zmienne na rzeczywiste wartości dla domyślnego szablonu
+      const processedMessage = defaultTemplate
+        .replace(/\[LINK\]/g, 'next-reviews-booster.com/review/vqyrdqrhf4')
+        .replace(/\[NAZWA_FIRMY\]/g, companyName || '[NAZWA_FIRMY]');
+
+      // Sprawdź czy wiadomość zawiera polskie znaki
+      const polishCharsRegex = /[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/;
+      const hasPolishChars = polishCharsRegex.test(processedMessage);
+      
+      // Określ limit znaków na segment
+      const charsPerSegment = hasPolishChars ? 67 : 153;
+      
+      // Oblicz liczbę segmentów na jedną wiadomość
+      const segments = Math.ceil(processedMessage.length / charsPerSegment);
+      
+      // Koszt za segment: $0.0431
+      const costPerSegment = 0.0431;
+      const costPerSMS = segments * costPerSegment;
+      const totalCost = costPerSMS * smsCount;
+      
+      // Przelicz na PLN
+      const costPerSMSPLN = costPerSMS * exchangeRate;
+      const totalCostPLN = totalCost * exchangeRate;
+      
+      return {
+        totalCost,
+        totalCostPLN,
+        segments,
+        costPerSMS,
+        costPerSMSPLN,
+        hasPolishChars,
+        processedMessageLength: processedMessage.length,
+        charsPerSegment,
+        usingDefaultTemplate: true
+      };
+    }
+    
+    if (smsCount === 0) {
       return { 
         totalCost: 0, 
         totalCostPLN: 0,
         segments: 0, 
         costPerSMS: 0,
         costPerSMSPLN: 0,
-        hasPolishChars: false 
+        hasPolishChars: false,
+        error: 'Brak wysłanych SMS'
       };
     }
 
@@ -471,16 +516,23 @@ const AdminPage = () => {
                       <span className="admin-user-sms-cost">
                         {(() => {
                           const costData = calculateSMSCost(user);
-                          return costData.totalCostPLN.toFixed(2);
-                        })()} zł
+                          if (costData.error) {
+                            return (
+                              <span className="admin-cost-error">
+                                {costData.error}
+                              </span>
+                            );
+                          }
+                          return `${costData.totalCostPLN.toFixed(2)} zł`;
+                        })()}
                         <span className="admin-user-sms-cost-detail">
-                          ({user.smsCount || 0} SMS × {(() => {
+                          {(() => {
                             const costData = calculateSMSCost(user);
-                            return costData.segments;
-                          })()} seg × {(() => {
-                            const costData = calculateSMSCost(user);
-                            return (costData.costPerSMS * exchangeRate).toFixed(4);
-                          })()} zł)
+                            if (costData.error) {
+                              return '';
+                            }
+                            return `(${user.smsCount || 0} SMS × ${costData.segments} seg × ${(costData.costPerSMS * exchangeRate).toFixed(4)} zł)`;
+                          })()}
                         </span>
                       </span>
                     </div>

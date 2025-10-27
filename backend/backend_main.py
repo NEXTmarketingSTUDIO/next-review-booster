@@ -2578,8 +2578,15 @@ async def get_user_statistics(username: str):
                 if updated_at.month == current_month and updated_at.year == current_year:
                     reviews_this_month += 1
         
-        # Zlicz SMS-y
-        sms_sent = len([client for client in clients if client.get("last_sms_sent")])
+        # Zlicz SMS-y - zsumuj sms_count ze wszystkich klientów
+        sms_sent = sum(client.get("sms_count", 0) for client in clients)
+        
+        print(f"📊 Szczegółowe statystyki SMS dla {username}:")
+        print(f"   - Klienci z SMS: {len([c for c in clients if c.get('sms_count', 0) > 0])}")
+        print(f"   - Łączna liczba SMS: {sms_sent}")
+        for client in clients:
+            if client.get("sms_count", 0) > 0:
+                print(f"   - {client.get('name', 'Brak nazwy')}: {client.get('sms_count', 0)} SMS")
         
         # Wskaźnik konwersji
         conversion_rate = 0
@@ -2691,8 +2698,9 @@ async def get_all_users():
                     twilio_settings = settings_data.get("twilio", {})
                     messaging_settings = settings_data.get("messaging", {})
                     
-                    # Policz klientów użytkownika
+                    # Policz klientów użytkownika i rzeczywiste SMS-y
                     clients_count = 0
+                    actual_sms_sent = 0
                     try:
                         # Pobierz wszystkie dokumenty w kolekcji użytkownika (pomijając "Dane" i "SMS")
                         user_collection = db.collection(collection_name)
@@ -2702,9 +2710,14 @@ async def get_all_users():
                             # Pomiń dokumenty systemowe
                             if doc_id not in ["Dane", "SMS"]:
                                 clients_count += 1
+                                # Zsumuj rzeczywistą liczbę SMS wysłanych do tego klienta
+                                client_data = doc.to_dict()
+                                client_sms_count = client_data.get("sms_count", 0)
+                                actual_sms_sent += client_sms_count
                     except Exception as e:
                         print(f"⚠️ Błąd liczenia klientów dla {collection_name}: {str(e)}")
                         clients_count = 0
+                        actual_sms_sent = 0
                     
                     user_info = {
                         "username": collection_name,
@@ -2720,7 +2733,7 @@ async def get_all_users():
                             "messaging_service_sid": twilio_settings.get("messaging_service_sid", "")
                         },
                         "smsLimit": messaging_settings.get("smsLimit", 10),
-                        "smsCount": messaging_settings.get("smsCount", 0),
+                        "smsCount": actual_sms_sent,  # Użyj rzeczywistej liczby SMS z bazy danych
                         "messageTemplate": messaging_settings.get("messageTemplate", ""),
                         "clientsCount": clients_count,
                         "created_at": settings_data.get("created_at", ""),
@@ -2728,7 +2741,7 @@ async def get_all_users():
                     }
                     
                     users.append(user_info)
-                    print(f"✅ Znaleziono użytkownika: {collection_name} ({user_data.get('email', 'Brak email')})")
+                    print(f"✅ Znaleziono użytkownika: {collection_name} ({user_data.get('email', 'Brak email')}) - SMS: {actual_sms_sent}/{messaging_settings.get('smsLimit', 10)}")
                     
             except Exception as e:
                 print(f"⚠️ Błąd pobierania danych użytkownika {collection_name}: {str(e)}")
