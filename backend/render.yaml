@@ -38,22 +38,14 @@ services:
         fromService:
           type: secret
           name: firebase-client-x509-cert-url
-      - key: SMTP_SERVER
+      - key: GMAIL_USERNAME
         fromService:
           type: secret
-          name: smtp-server
-      - key: SMTP_PORT
+          name: gmail-username
+      - key: GMAIL_APP_PASSWORD
         fromService:
           type: secret
-          name: smtp-port
-      - key: SMTP_USERNAME
-        fromService:
-          type: secret
-          name: smtp-username
-      - key: SMTP_PASSWORD
-        fromService:
-          type: secret
-          name: smtp-password
+          name: gmail-app-password
 - key: FRONTEND_URL
   value: https://next-reviews-booster-app.web.app
     healthCheckPath: /health

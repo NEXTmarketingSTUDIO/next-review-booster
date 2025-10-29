@@ -619,34 +619,22 @@ def generate_review_code():
 async def send_contact_email(contact_data: ContactFormRequest) -> dict:
     """Wysyła email kontaktowy na adres kontakt@next-reviews-booster.com"""
     try:
-        # Konfiguracja SMTP dla konta kontakt@next-reviews-booster.com
-        smtp_server = os.getenv("SMTP_SERVER")
-        smtp_port_str = os.getenv("SMTP_PORT")
-        smtp_username = os.getenv("SMTP_USERNAME")
-        smtp_password = os.getenv("SMTP_PASSWORD")
+        # Użyj tylko Gmail (nextmarketingstudio@gmail.com)
+        gmail_username = os.getenv("GMAIL_USERNAME")
+        gmail_password = os.getenv("GMAIL_APP_PASSWORD")
         
         # Sprawdź czy wszystkie zmienne środowiskowe są ustawione
-        if not smtp_server:
-            raise ValueError("SMTP_SERVER nie jest ustawiony")
-        if not smtp_port_str:
-            raise ValueError("SMTP_PORT nie jest ustawiony")
-        if not smtp_username:
-            raise ValueError("SMTP_USERNAME nie jest ustawiony")
-        if not smtp_password:
-            raise ValueError("SMTP_PASSWORD nie jest ustawiony")
-        
-        # Konwertuj port na int
-        try:
-            smtp_port = int(smtp_port_str)
-        except ValueError:
-            raise ValueError(f"SMTP_PORT musi być liczbą, otrzymano: {smtp_port_str}")
+        if not gmail_username:
+            raise ValueError("GMAIL_USERNAME nie jest ustawiony")
+        if not gmail_password:
+            raise ValueError("GMAIL_APP_PASSWORD nie jest ustawiony")
         
         # Adres docelowy
         to_email = "kontakt@next-reviews-booster.com"
         
         # Przygotuj wiadomość email
         msg = MIMEMultipart()
-        msg['From'] = smtp_username
+        msg['From'] = gmail_username
         msg['To'] = to_email
         msg['Subject'] = f"Nowa wiadomość kontaktowa od {contact_data.name}"
         
@@ -668,22 +656,18 @@ Wiadomość wysłana z formularza kontaktowego na stronie next-reviews-booster.c
         
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
         
-        # Wyślij email
+        # Wyślij email przez Gmail
         print(f"📧 Wysyłanie emaila kontaktowego od: {contact_data.name}")
-        print(f"📧 SMTP Server: {smtp_server}:{smtp_port}")
+        print(f"📧 Wysyłanie przez Gmail: {gmail_username}")
         
-        # Użyj SMTP_SSL dla portu 465 (SSL/TLS)
-        if smtp_port == 587:
-            server = smtplib.SMTP_SSL(smtp_server, smtp_port)
-        else:
-            server = smtplib.SMTP(smtp_server, smtp_port)
-            server.starttls()
-        
-        server.login(smtp_username, smtp_password)
+        # Użyj Gmail SMTP
+        gmail_server = smtplib.SMTP("smtp.gmail.com", 587, timeout=30)
+        gmail_server.starttls()
+        gmail_server.login(gmail_username, gmail_password)
         
         text = msg.as_string()
-        server.sendmail(smtp_username, to_email, text)
-        server.quit()
+        gmail_server.sendmail(gmail_username, to_email, text)
+        gmail_server.quit()
         
         print(f"✅ Email kontaktowy wysłany pomyślnie od: {contact_data.name}")
         
@@ -785,70 +769,37 @@ Zespół NEXT reviews BOOSTER
         
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
         
-        # Wyślij email
+        # Wyślij email przez Gmail
         print(f"📧 Wysyłanie powiadomienia email o opinii od: {client_name}")
         print(f"📧 Do: {owner_email}")
-        print(f"📧 SMTP Server: {smtp_server}:{smtp_port}")
         
-        # Najpierw spróbuj z głównym serwerem SMTP (seohost)
-        try:
-            # Użyj SMTP_SSL dla portu 465 (SSL/TLS)
-            if smtp_port == 465:
-                server = smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=15)
-            else:
-                server = smtplib.SMTP(smtp_server, smtp_port, timeout=15)
-                server.starttls()
-            
-            server.settimeout(15)
-            server.login(smtp_username, smtp_password)
-            
-            text = msg.as_string()
-            server.sendmail(smtp_username, owner_email, text)
-            server.quit()
-            
-            print(f"✅ Email z powiadomieniem o opinii wysłany pomyślnie do: {owner_email}")
-            
-            return {
-                "success": True,
-                "message": "Email z powiadomieniem został wysłany"
-            }
-            
-        except Exception as primary_error:
-            print(f"⚠️ Błąd wysyłania emaila przez główny SMTP ({smtp_server}): {str(primary_error)}")
-            print(f"🔄 Próba wysłania przez Gmail jako fallback...")
-            
-            # Fallback na Gmail (nextmarketingstudio@gmail.com)
-            try:
-                gmail_username = os.getenv("GMAIL_USERNAME")
-                gmail_password = os.getenv("GMAIL_APP_PASSWORD")
-                
-                if not gmail_username or not gmail_password:
-                    print(f"❌ Brak konfiguracji Gmail - nie można użyć fallback")
-                    raise primary_error  # Rzuć oryginalny błąd
-                
-                print(f"📧 Próba wysłania przez Gmail: {gmail_username}")
-                gmail_server = smtplib.SMTP("smtp.gmail.com", 587, timeout=15)
-                gmail_server.starttls()
-                gmail_server.settimeout(15)
-                gmail_server.login(gmail_username, gmail_password)
-                
-                # Zmień nadawcę na Gmail (nextmarketingstudio@gmail.com)
-                msg['From'] = gmail_username
-                text = msg.as_string()
-                gmail_server.sendmail(gmail_username, owner_email, text)
-                gmail_server.quit()
-                
-                print(f"✅ Email wysłany pomyślnie przez Gmail do: {owner_email}")
-                
-                return {
-                    "success": True,
-                    "message": "Email z powiadomieniem został wysłany (przez Gmail)"
-                }
-                
-            except Exception as gmail_error:
-                print(f"❌ Błąd wysyłania emaila przez Gmail: {str(gmail_error)}")
-                # Rzuć oryginalny błąd
-                raise primary_error
+        # Użyj tylko Gmail (nextmarketingstudio@gmail.com)
+        gmail_username = os.getenv("GMAIL_USERNAME")
+        gmail_password = os.getenv("GMAIL_APP_PASSWORD")
+        
+        if not gmail_username or not gmail_password:
+            print(f"❌ Brak konfiguracji Gmail - nie można wysłać emaila")
+            raise Exception("Brak konfiguracji Gmail")
+        
+        print(f"📧 Wysyłanie przez Gmail: {gmail_username}")
+        
+        # Użyj Gmail SMTP
+        gmail_server = smtplib.SMTP("smtp.gmail.com", 587, timeout=30)
+        gmail_server.starttls()
+        gmail_server.login(gmail_username, gmail_password)
+        
+        # Zmień nadawcę na Gmail
+        msg['From'] = gmail_username
+        text = msg.as_string()
+        gmail_server.sendmail(gmail_username, owner_email, text)
+        gmail_server.quit()
+        
+        print(f"✅ Email wysłany pomyślnie przez Gmail do: {owner_email}")
+        
+        return {
+            "success": True,
+            "message": "Email z powiadomieniem został wysłany"
+        }
         
     except Exception as e:
         print(f"❌ Błąd wysyłania emaila z powiadomieniem: {str(e)}")
@@ -870,10 +821,8 @@ Zespół NEXT reviews BOOSTER
         print(f"Błąd SMTP: {str(e)}")
         print("-" * 50)
         print("Sprawdź zmienne środowiskowe:")
-        print(f"SMTP_SERVER: {os.getenv('SMTP_SERVER', 'NIE USTAWIONY')}")
-        print(f"SMTP_PORT: {os.getenv('SMTP_PORT', 'NIE USTAWIONY')}")
-        print(f"SMTP_USERNAME: {os.getenv('SMTP_USERNAME', 'NIE USTAWIONY')}")
-        print(f"SMTP_PASSWORD: {'USTAWIONY' if os.getenv('SMTP_PASSWORD') else 'NIE USTAWIONY'}")
+        print(f"GMAIL_USERNAME: {os.getenv('GMAIL_USERNAME', 'NIE USTAWIONY')}")
+        print(f"GMAIL_APP_PASSWORD: {'USTAWIONY' if os.getenv('GMAIL_APP_PASSWORD') else 'NIE USTAWIONY'}")
         print("=" * 50)
         
         return {
