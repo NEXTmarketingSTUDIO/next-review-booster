@@ -748,7 +748,7 @@ Otrzymałeś/aś nową opinię od klienta:
 Możesz zobaczyć wszystkie opinie w swoim panelu administracyjnym:
 https://next-reviews-booster.com/dashboard
 
-Zespół Next Reviews Booster
+Zespół NEXT reviews BOOSTER
 """
         
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
