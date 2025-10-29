@@ -3397,3 +3397,36 @@ html {
     margin: 0 auto;
   }
 }
+
+/* Style dla powiadomień w nawigacji */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-right .notifications-container {
+  margin-right: 0.5rem;
+}
+
+/* Responsywność dla powiadomień */
+@media (max-width: 768px) {
+  .nav-right {
+    gap: 0.5rem;
+  }
+  
+  .nav-right .notifications-container {
+    margin-right: 0.25rem;
+  }
+  
+  .notifications-bell {
+    width: 40px;
+    height: 40px;
+    padding: 0.5rem;
+  }
+  
+  .notifications-dropdown {
+    right: -20px;
+    width: 320px;
+  }
+}

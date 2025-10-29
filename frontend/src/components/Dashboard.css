@@ -819,16 +819,6 @@
   }
 }
 
-@keyframes slideDown {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-}
 
 /* Custom scrollbar for sidebar */
 .sidebar-content::-webkit-scrollbar {
@@ -846,4 +836,71 @@
 
 .sidebar-content::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+}
+
+/* Notifications w header */
+.header-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.header-right .notifications-container {
+  position: relative;
+}
+
+.header-right .notifications-bell {
+  width: 48px;
+  height: 48px;
+  padding: 0.75rem;
+  background: rgba(252, 162, 18, 0.1);
+  border: 1px solid rgba(252, 162, 18, 0.3);
+  border-radius: 12px;
+  color: #fca212;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-right .notifications-bell:hover {
+  background: rgba(252, 162, 18, 0.2);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(252, 162, 18, 0.2);
+}
+
+.header-right .notification-badge {
+  top: 8px;
+  right: 8px;
+  min-width: 20px;
+  height: 20px;
+  font-size: 0.75rem;
+}
+
+/* Dropdown powiadomień w header */
+.header-right .notifications-dropdown {
+  right: 0;
+  left: auto;
+  width: 380px;
+  max-width: 90vw;
+  margin-top: 0.5rem;
+}
+
+/* Responsywność */
+@media (max-width: 768px) {
+  .header-right {
+    gap: 0.5rem;
+  }
+  
+  .header-right .notifications-bell {
+    width: 40px;
+    height: 40px;
+    padding: 0.5rem;
+  }
+  
+  .header-right .notifications-dropdown {
+    right: -20px;
+    width: 320px;
+  }
 }

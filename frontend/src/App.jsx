@@ -50,8 +50,8 @@ function AppContent() {
   useEffect(() => {
     checkHealth();
     
-    // Sprawdzaj status co 30 sekund
-    const interval = setInterval(checkHealth, 30000);
+    // Sprawdzaj status co 5 minut (zoptymalizowane)
+    const interval = setInterval(checkHealth, 5 * 60 * 1000);
     
     // Inicjalizuj Feather Icons
     if (window.feather) {

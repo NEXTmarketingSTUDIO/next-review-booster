@@ -223,7 +223,7 @@ Dziękujemy!""",
             ),
             twilio=TwilioSettings(
                 account_sid="ACfc0d69a38f5b328bc7783fa5829336b2",
-                auth_token="e56fe2d3ea27bb867463305daa851e73",
+                auth_token="611da96accd9e1d3c95a37a5c43f7856",
                 phone_number="",
                 messaging_service_sid="MG12792d6acd38447e77756a5ceb2c75f1"
             ),
@@ -699,6 +699,108 @@ Wiadomość wysłana z formularza kontaktowego na stronie next-reviews-booster.c
         return {
             "success": True,
             "message": "Wiadomość została zapisana. Odpowiemy najszybciej jak to możliwe."
+        }
+
+# Funkcja do wysyłania emaili z powiadomieniami o nowych opiniach
+async def send_review_notification_email(owner_email: str, client_name: str, stars: int, review_text: str, company_name: str) -> dict:
+    """Wysyła email z powiadomieniem o nowej opinii"""
+    try:
+        # Konfiguracja SMTP
+        smtp_server = os.getenv("SMTP_SERVER")
+        smtp_port = int(os.getenv("SMTP_PORT"))
+        smtp_username = os.getenv("SMTP_USERNAME")
+        smtp_password = os.getenv("SMTP_PASSWORD")
+        
+        # Przygotuj wiadomość email
+        msg = MIMEMultipart()
+        msg['From'] = smtp_username
+        msg['To'] = owner_email
+        msg['Subject'] = f"⭐ Nowa opinia od {client_name} - {stars} gwiazdek"
+        
+        # Przygotuj treść w zależności od oceny
+        stars_emoji = "⭐" * stars
+        if stars >= 4:
+            emoji = "🎉"
+            mood = "Świetna opinia!"
+        elif stars == 3:
+            emoji = "📝"
+            mood = "Nowa opinia"
+        else:
+            emoji = "⚠️"
+            mood = "Opinia wymagająca uwagi"
+        
+        # Treść wiadomości
+        body = f"""
+{emoji} {mood}
+
+Drogi/a {company_name},
+
+Otrzymałeś/aś nową opinię od klienta:
+
+👤 Klient: {client_name}
+{stars_emoji} Ocena: {stars}/5 gwiazdek
+📅 Data: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+💬 Treść opinii:
+{review_text if review_text else "Brak treści recenzji"}
+
+---
+Możesz zobaczyć wszystkie opinie w swoim panelu administracyjnym:
+https://next-reviews-booster.com/dashboard
+
+Zespół Next Reviews Booster
+"""
+        
+        msg.attach(MIMEText(body, 'plain', 'utf-8'))
+        
+        # Wyślij email
+        print(f"📧 Wysyłanie powiadomienia email o opinii od: {client_name}")
+        print(f"📧 Do: {owner_email}")
+        print(f"📧 SMTP Server: {smtp_server}:{smtp_port}")
+        
+        # Użyj SMTP_SSL dla portu 465 (SSL/TLS)
+        if smtp_port == 465:
+            server = smtplib.SMTP_SSL(smtp_server, smtp_port)
+        else:
+            server = smtplib.SMTP(smtp_server, smtp_port)
+            server.starttls()
+        
+        server.login(smtp_username, smtp_password)
+        
+        text = msg.as_string()
+        server.sendmail(smtp_username, owner_email, text)
+        server.quit()
+        
+        print(f"✅ Email z powiadomieniem o opinii wysłany pomyślnie do: {owner_email}")
+        
+        return {
+            "success": True,
+            "message": "Email z powiadomieniem został wysłany"
+        }
+        
+    except Exception as e:
+        print(f"❌ Błąd wysyłania emaila z powiadomieniem: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # W przypadku błędu, zapisz do logów jako backup
+        print("=" * 50)
+        print("BŁĄD WYSYŁANIA EMAILA Z POWIADOMIENIEM - ZAPISYWANIE DO LOGÓW")
+        print("=" * 50)
+        print(f"Do: {owner_email}")
+        print(f"Klient: {client_name}")
+        print(f"Ocena: {stars} gwiazdek")
+        print(f"Data: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("-" * 50)
+        print("Treść opinii:")
+        print(review_text)
+        print("-" * 50)
+        print(f"Błąd SMTP: {str(e)}")
+        print("=" * 50)
+        
+        return {
+            "success": False,
+            "message": "Błąd wysyłania emaila z powiadomieniem"
         }
 
 
@@ -1928,6 +2030,8 @@ async def submit_review(review_code: str, review_data: ReviewSubmission):
             raise HTTPException(status_code=404, detail="Kod recenzji nie został znaleziony")
         
         # Zaktualizuj dane klienta z nową recenzją
+        owner_username = None
+        
         if is_temp_client:
             # Dla tymczasowych klientów
             doc_ref = db.collection("temp_clients").document(found_client["id"])
@@ -1938,6 +2042,9 @@ async def submit_review(review_code: str, review_data: ReviewSubmission):
                 "updated_at": datetime.now()
             })
             print(f"✅ Zaktualizowano tymczasowego klienta: {found_client['id']}")
+            
+            # Pobierz właściciela z danych klienta tymczasowego
+            owner_username = found_client.get("owner_username")
         else:
             # Dla stałych klientów - użyj zapisanej nazwy kolekcji
             if found_collection:
@@ -1949,12 +2056,100 @@ async def submit_review(review_code: str, review_data: ReviewSubmission):
                     "updated_at": datetime.now()
                 })
                 print(f"✅ Zaktualizowano klienta w kolekcji {found_collection}: {found_client['id']}")
+                owner_username = found_collection
             else:
                 print(f"⚠️ Nie znaleziono kolekcji dla klienta")
                 raise HTTPException(status_code=500, detail="Nie można zaktualizować klienta")
         
         print(f"✅ Ocena zapisana: {review_data.stars} gwiazdek dla {found_client['name']}")
         print(f"💬 Recenzja: {review_data.review}")
+        
+        # Utwórz powiadomienie dla właściciela (dla WSZYSTKICH opinii 1-5 gwiazdek)
+        try:
+            # Znajdź email właściciela na podstawie username
+            owner_email = None
+            if owner_username:
+                # Pobierz email z ustawień użytkownika
+                settings_doc = db.collection(owner_username).document("Dane").get()
+                if settings_doc.exists:
+                    settings_data = settings_doc.to_dict()
+                    owner_email = settings_data.get("userData", {}).get("email", "")
+            
+            if owner_email:
+                # Utwórz powiadomienie dla WSZYSTKICH opinii (1-5 gwiazdek)
+                client_name = found_client.get('name', 'Klient')
+                stars_emoji = "⭐" * review_data.stars
+                
+                # Dostosuj tytuł w zależności od oceny
+                if review_data.stars >= 4:
+                    title = f"🎉 Świetna opinia od {client_name}!"
+                elif review_data.stars == 3:
+                    title = f"📝 Nowa opinia od {client_name}"
+                else:
+                    title = f"⚠️ Opinia wymagająca uwagi od {client_name}"
+                
+                # Przygotuj wiadomość
+                review_preview = review_data.review[:80] if review_data.review else "Brak treści recenzji"
+                if len(review_data.review) > 80:
+                    review_preview += "..."
+                
+                message = f"{stars_emoji} ({review_data.stars}/5)\n{review_preview}"
+                
+                notification_ref = db.collection("notifications").document()
+                notification_data = {
+                    "user_email": owner_email,
+                    "type": "review",
+                    "title": title,
+                    "message": message,
+                    "read": False,
+                    "created_at": datetime.now().isoformat(),
+                    "metadata": {
+                        "client_name": client_name,
+                        "stars": review_data.stars,
+                        "review_code": review_code,
+                        "is_temp_client": is_temp_client
+                    }
+                }
+                notification_ref.set(notification_data)
+                print(f"✅ Powiadomienie utworzone dla: {owner_email} (ocena: {review_data.stars} gwiazdek)")
+                
+                # Wyślij email z powiadomieniem
+                try:
+                    # Pobierz nazwę firmy z ustawień
+                    company_name = "Twoja Firma"
+                    if owner_username:
+                        settings_doc = db.collection(owner_username).document("Dane").get()
+                        if settings_doc.exists:
+                            settings_data = settings_doc.to_dict()
+                            user_data = settings_data.get("userData", {})
+                            if "userData" in user_data:
+                                nested_user_data = user_data["userData"]
+                                company_name = nested_user_data.get("companyName", "Twoja Firma")
+                            else:
+                                company_name = user_data.get("companyName", "Twoja Firma")
+                    
+                    # Wyślij email
+                    email_result = await send_review_notification_email(
+                        owner_email=owner_email,
+                        client_name=client_name,
+                        stars=review_data.stars,
+                        review_text=review_data.review,
+                        company_name=company_name
+                    )
+                    
+                    if email_result["success"]:
+                        print(f"✅ Email z powiadomieniem wysłany do: {owner_email}")
+                    else:
+                        print(f"⚠️ Błąd wysyłania emaila: {email_result['message']}")
+                        
+                except Exception as email_error:
+                    print(f"⚠️ Błąd wysyłania emaila z powiadomieniem: {str(email_error)}")
+                    # Nie przerywaj procesu jeśli email się nie powiedzie
+            else:
+                print(f"⚠️ Nie znaleziono emaila właściciela dla powiadomienia")
+        except Exception as notif_error:
+            print(f"⚠️ Błąd tworzenia powiadomienia: {str(notif_error)}")
+            # Nie przerywaj procesu jeśli powiadomienie się nie powiedzie
         
         return ReviewResponse(
             success=True,
@@ -2621,7 +2816,29 @@ async def get_user_permission_by_email(email: str):
         raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
     
     try:
-        # Znajdź użytkownika po email w bazie danych
+        # Najpierw spróbuj wygenerować username z emaila (szybsze)
+        username = email.replace('@', '_at_').replace('.', '_')
+        
+        # Sprawdź czy taki username istnieje
+        try:
+            settings_doc = db.collection(username).document("Dane").get()
+            if settings_doc.exists:
+                settings_data = settings_doc.to_dict()
+                stored_email = settings_data.get("userData", {}).get("email", "")
+                
+                if stored_email == email:
+                    permission = settings_data.get("permission", "Demo")
+                    print(f"✅ Znaleziono użytkownika bezpośrednio: {username}, uprawnienia: {permission}")
+                    return {
+                        "username": username,
+                        "permission": permission,
+                        "message": f"Uprawnienia użytkownika {username}: {permission}"
+                    }
+        except Exception as e:
+            print(f"⚠️ Nie znaleziono bezpośrednio username: {username}")
+        
+        # Jeśli nie znaleziono bezpośrednio, iteruj przez kolekcje (wolniejsze)
+        print(f"🔍 Szukam w kolekcjach...")
         collections = db.collections()
         found_username = None
         
@@ -2629,7 +2846,7 @@ async def get_user_permission_by_email(email: str):
             collection_name = collection.id
             
             # Pomiń kolekcje systemowe
-            if collection_name in ["temp_clients"]:
+            if collection_name in ["temp_clients", "notifications"]:
                 continue
             
             try:
@@ -2639,6 +2856,8 @@ async def get_user_permission_by_email(email: str):
                     user_email = settings_data.get("userData", {}).get("email", "")
                     if user_email == email:
                         found_username = collection_name
+                        permission = settings_data.get("permission", "Demo")
+                        print(f"✅ Znaleziono użytkownika: {found_username}, uprawnienia: {permission}")
                         break
             except Exception as e:
                 print(f"⚠️ Błąd sprawdzania kolekcji {collection_name}: {str(e)}")
@@ -2664,6 +2883,8 @@ async def get_user_permission_by_email(email: str):
         
     except Exception as e:
         print(f"❌ Błąd pobierania uprawnień: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Błąd pobierania uprawnień: {str(e)}")
 
 # Endpoint do pobierania wszystkich użytkowników (tylko dla adminów)
@@ -3011,6 +3232,184 @@ async def reset_all_sms_limits():
     except Exception as e:
         print(f"❌ Błąd resetowania limitów SMS: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Błąd resetowania limitów SMS: {str(e)}")
+
+
+# Modele dla powiadomień
+class Notification(BaseModel):
+    id: str
+    user_email: str
+    type: str
+    title: str
+    message: str
+    read: bool = False
+    created_at: str
+
+class NotificationResponse(BaseModel):
+    success: bool
+    notifications: List[Notification]
+    message: str = ""
+
+class NotificationReadResponse(BaseModel):
+    success: bool
+    message: str
+
+# Endpointy dla powiadomień
+@app.get("/notifications/{user_email}", response_model=NotificationResponse)
+async def get_notifications(user_email: str):
+    """Pobierz powiadomienia dla użytkownika"""
+    print(f"🔔 Pobieranie powiadomień dla: {user_email}")
+    
+    if not db:
+        print("❌ Firebase nie jest skonfigurowany")
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Pobierz powiadomienia z kolekcji notifications
+        # Najpierw sprawdź czy kolekcja istnieje
+        notifications_ref = db.collection("notifications")
+        
+        # Pobierz wszystkie dokumenty dla użytkownika (bez order_by żeby nie wymagać indeksu)
+        query = notifications_ref.where("user_email", "==", user_email).limit(50)
+        
+        try:
+            docs = query.stream()
+            
+            notifications = []
+            for doc in docs:
+                data = doc.to_dict()
+                notifications.append(Notification(
+                    id=doc.id,
+                    user_email=data.get("user_email", ""),
+                    type=data.get("type", "system"),
+                    title=data.get("title", ""),
+                    message=data.get("message", ""),
+                    read=data.get("read", False),
+                    created_at=data.get("created_at", "")
+                ))
+            
+            # Sortuj w pamięci po pobraniu
+            notifications.sort(key=lambda x: x.created_at, reverse=True)
+            
+            print(f"✅ Znaleziono {len(notifications)} powiadomień")
+            
+            return NotificationResponse(
+                success=True,
+                notifications=notifications,
+                message=f"Znaleziono {len(notifications)} powiadomień"
+            )
+        except Exception as query_error:
+            # Jeśli query nie działa (np. brak indeksu), zwróć pustą listę
+            print(f"⚠️ Błąd zapytania powiadomień (możliwy brak indeksu): {str(query_error)}")
+            return NotificationResponse(
+                success=True,
+                notifications=[],
+                message="Brak powiadomień lub wymagany indeks Firebase"
+            )
+        
+    except Exception as e:
+        print(f"❌ Błąd pobierania powiadomień: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Błąd pobierania powiadomień: {str(e)}")
+
+@app.put("/notifications/{user_email}/{notification_id}/read", response_model=NotificationReadResponse)
+async def mark_notification_as_read(user_email: str, notification_id: str):
+    """Oznacz powiadomienie jako przeczytane"""
+    print(f"📖 Oznaczanie powiadomienia jako przeczytane: {notification_id} dla {user_email}")
+    
+    if not db:
+        print("❌ Firebase nie jest skonfigurowany")
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Zaktualizuj powiadomienie
+        notification_ref = db.collection("notifications").document(notification_id)
+        notification_ref.update({
+            "read": True,
+            "read_at": datetime.now().isoformat()
+        })
+        
+        print(f"✅ Powiadomienie {notification_id} oznaczone jako przeczytane")
+        
+        return NotificationReadResponse(
+            success=True,
+            message="Powiadomienie oznaczone jako przeczytane"
+        )
+        
+    except Exception as e:
+        print(f"❌ Błąd oznaczania powiadomienia: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd oznaczania powiadomienia: {str(e)}")
+
+@app.put("/notifications/{user_email}/read-all", response_model=NotificationReadResponse)
+async def mark_all_notifications_as_read(user_email: str):
+    """Oznacz wszystkie powiadomienia jako przeczytane"""
+    print(f"📖 Oznaczanie wszystkich powiadomień jako przeczytane dla: {user_email}")
+    
+    if not db:
+        print("❌ Firebase nie jest skonfigurowany")
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Znajdź wszystkie nieprzeczytane powiadomienia
+        notifications_ref = db.collection("notifications")
+        query = notifications_ref.where("user_email", "==", user_email).where("read", "==", False)
+        docs = query.stream()
+        
+        # Zaktualizuj wszystkie nieprzeczytane powiadomienia
+        batch = db.batch()
+        count = 0
+        for doc in docs:
+            doc_ref = db.collection("notifications").document(doc.id)
+            batch.update(doc_ref, {
+                "read": True,
+                "read_at": datetime.now().isoformat()
+            })
+            count += 1
+        
+        if count > 0:
+            batch.commit()
+        
+        print(f"✅ {count} powiadomień oznaczone jako przeczytane")
+        
+        return NotificationReadResponse(
+            success=True,
+            message=f"{count} powiadomień oznaczone jako przeczytane"
+        )
+        
+    except Exception as e:
+        print(f"❌ Błąd oznaczania wszystkich powiadomień: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd oznaczania wszystkich powiadomień: {str(e)}")
+
+@app.post("/notifications/{user_email}/create", response_model=NotificationReadResponse)
+async def create_notification(user_email: str, notification_data: dict):
+    """Utwórz nowe powiadomienie (do użycia wewnętrznego)"""
+    print(f"🔔 Tworzenie powiadomienia dla: {user_email}")
+    
+    if not db:
+        print("❌ Firebase nie jest skonfigurowany")
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+    
+    try:
+        # Utwórz nowe powiadomienie
+        notification_ref = db.collection("notifications").document()
+        notification_data.update({
+            "user_email": user_email,
+            "read": False,
+            "created_at": datetime.now().isoformat()
+        })
+        
+        notification_ref.set(notification_data)
+        
+        print(f"✅ Powiadomienie utworzone: {notification_ref.id}")
+        
+        return NotificationReadResponse(
+            success=True,
+            message="Powiadomienie utworzone"
+        )
+        
+    except Exception as e:
+        print(f"❌ Błąd tworzenia powiadomienia: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd tworzenia powiadomienia: {str(e)}")
 
 
 if __name__ == "__main__":

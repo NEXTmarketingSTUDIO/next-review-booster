@@ -3,6 +3,7 @@ import { Routes, Route, Link, useLocation, Navigate, useNavigate } from 'react-r
 import useAuth from '../hooks/useAuth';
 import usePermissions from '../hooks/usePermissions';
 import UserNav from './UserNav';
+import Notifications from './Notifications';
 import ClientsPage from '../pages/ClientsPage';
 import QRCodePage from '../pages/QRCodePage';
 import SettingsPage from '../pages/SettingsPage';
@@ -437,7 +438,7 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="header-right">
-            {/* UserNav functionality moved to sidebar footer */}
+            <Notifications />
           </div>
         </header>
 

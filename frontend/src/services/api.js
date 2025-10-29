@@ -15,21 +15,19 @@ console.log('🔧 API Config:', {
 
 const api = axios.create({
   baseURL: baseURL,
-  timeout: 15000, // Zwiększony timeout dla Firebase
+  timeout: 30000, // Zwiększony timeout dla Firebase (30 sekund)
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Dodaj interceptor aby debugować requesty
+// Dodaj interceptor do obsługi błędów (wyłączone debugowanie)
 api.interceptors.request.use(
   (config) => {
-    console.log('🚀 API Request:', {
-      method: config.method,
-      url: config.url,
-      baseURL: config.baseURL,
-      fullURL: `${config.baseURL}${config.url}`
-    });
+    // Logowanie tylko w trybie deweloperskim
+    if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_API === 'true') {
+      console.log('🚀 API Request:', config.url);
+    }
     return config;
   },
   (error) => {
@@ -40,11 +38,10 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
-    console.log('✅ API Response:', {
-      status: response.status,
-      url: response.config.url,
-      data: response.data
-    });
+    // Logowanie tylko w trybie deweloperskim
+    if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_API === 'true') {
+      console.log('✅ API Response:', response.config.url);
+    }
     return response;
   },
   (error) => {
@@ -433,6 +430,62 @@ export const apiService = {
       return {
         success: false,
         error: error.response?.data?.detail || 'Błąd aktualizacji Twilio'
+      };
+    }
+  },
+
+  // Powiadomienia
+  async getNotifications(userEmail) {
+    console.log('🔔 API: Pobieranie powiadomień:', userEmail);
+    try {
+      const response = await api.get(`/notifications/${encodeURIComponent(userEmail)}`);
+      console.log('✅ API: Powiadomienia pobrane:', response.data);
+      return {
+        success: true,
+        notifications: response.data.notifications || []
+      };
+    } catch (error) {
+      console.error('❌ API: Błąd pobierania powiadomień:', error);
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Błąd pobierania powiadomień',
+        notifications: []
+      };
+    }
+  },
+
+  async markNotificationAsRead(userEmail, notificationId) {
+    console.log('📖 API: Oznaczanie powiadomienia jako przeczytane:', { userEmail, notificationId });
+    try {
+      const response = await api.put(`/notifications/${encodeURIComponent(userEmail)}/${notificationId}/read`);
+      console.log('✅ API: Powiadomienie oznaczone jako przeczytane:', response.data);
+      return {
+        success: true,
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error('❌ API: Błąd oznaczania powiadomienia:', error);
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Błąd oznaczania powiadomienia'
+      };
+    }
+  },
+
+  async markAllNotificationsAsRead(userEmail) {
+    console.log('📖 API: Oznaczanie wszystkich powiadomień jako przeczytane:', userEmail);
+    try {
+      const response = await api.put(`/notifications/${encodeURIComponent(userEmail)}/read-all`);
+      console.log('✅ API: Wszystkie powiadomienia oznaczone jako przeczytane:', response.data);
+      return {
+        success: true,
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error('❌ API: Błąd oznaczania wszystkich powiadomień:', error);
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Błąd oznaczania wszystkich powiadomień'
       };
     }
   }

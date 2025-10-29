@@ -30,35 +30,34 @@ const AdminPage = () => {
 
   useEffect(() => {
     // Sprawdź uprawnienia przed wykonaniem jakichkolwiek operacji
-    if (!permissionsLoading && !isAdmin()) {
+    const hasAdminPermission = isAdmin();
+    
+    if (!permissionsLoading && !hasAdminPermission) {
       setError('Brak uprawnień administratora');
       setLoading(false);
       return;
     }
     
-    if (!permissionsLoading && isAdmin()) {
+    if (!permissionsLoading && hasAdminPermission) {
       fetchUsers();
       fetchExchangeRate();
     }
-  }, [permissionsLoading, isAdmin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permissionsLoading]); // Tylko permissionsLoading jako zależność
 
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      console.log('👥 AdminPage: Pobieranie użytkowników z API...');
       const response = await apiService.getAllUsers();
       
       if (response.success) {
         setUsers(response.users);
-        console.log('✅ AdminPage: Użytkownicy pobrani:', response.users.length);
       } else {
         setError(response.error || 'Błąd pobierania użytkowników');
-        console.error('❌ AdminPage: Błąd pobierania:', response.error);
       }
     } catch (err) {
-      console.error('❌ AdminPage: Błąd pobierania użytkowników:', err);
       setError('Błąd połączenia z serwerem');
     } finally {
       setLoading(false);
@@ -69,8 +68,6 @@ const AdminPage = () => {
     setLoadingRate(true);
     
     try {
-      console.log('💱 AdminPage: Pobieranie kursu USD/PLN z NBP...');
-      
       // API NBP dla kursu USD
       const response = await fetch('https://api.nbp.pl/api/exchangerates/rates/a/usd/?format=json');
       
@@ -84,12 +81,8 @@ const AdminPage = () => {
       
       setExchangeRate(rate);
       setLastRateUpdate(new Date(date));
-      
-      console.log(`✅ AdminPage: Kurs USD/PLN: ${rate} (${date})`);
     } catch (err) {
-      console.error('❌ AdminPage: Błąd pobierania kursu NBP:', err);
       // Pozostaw domyślny kurs 4.0
-      console.log('⚠️ AdminPage: Używam domyślnego kursu 4.0 PLN');
     } finally {
       setLoadingRate(false);
     }
@@ -99,17 +92,13 @@ const AdminPage = () => {
     setLoadingStats(prev => new Set([...prev, username]));
     
     try {
-      console.log('📊 AdminPage: Pobieranie statystyk dla:', username);
       const stats = await apiService.getUserStatistics(username);
       
       setUserStatistics(prev => ({
         ...prev,
         [username]: stats
       }));
-      
-      console.log('✅ AdminPage: Statystyki pobrane dla:', username, stats);
     } catch (err) {
-      console.error('❌ AdminPage: Błąd pobierania statystyk dla:', username, err);
       setUserStatistics(prev => ({
         ...prev,
         [username]: {

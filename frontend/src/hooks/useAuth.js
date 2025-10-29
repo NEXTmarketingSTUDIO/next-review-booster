@@ -7,25 +7,14 @@ const useAuth = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    console.log('🔄 Inicjalizacja hooka useAuth');
-    
-    // Nasłuchuj zmian stanu autoryzacji
+    // Nasłuchuj zmian stanu autoryzacji (tylko raz przy montowaniu)
     const unsubscribe = firebaseAuthService.onAuthStateChange((userData) => {
-      console.log('🔄 Zmiana stanu autoryzacji:', userData ? 'Zalogowany' : 'Wylogowany');
-      
       setUser(userData);
       setLoading(false);
-      
-      if (userData) {
-        console.log('✅ Użytkownik zalogowany:', userData.email);
-      } else {
-        console.log('ℹ️ Użytkownik wylogowany');
-      }
     });
 
     // Cleanup function
     return () => {
-      console.log('🧹 Czyszczenie hooka useAuth');
       unsubscribe();
     };
   }, []);

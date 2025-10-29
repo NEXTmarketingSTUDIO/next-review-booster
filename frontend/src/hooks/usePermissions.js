@@ -11,25 +11,29 @@ const usePermissions = () => {
   const [isFetching, setIsFetching] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated() && user) {
-      // Cache na 5 minut - nie pobieraj uprawnień częściej niż co 5 minut
+    if (isAuthenticated() && user?.email) {
+      // Cache na 15 minut - nie pobieraj uprawnień częściej niż co 15 minut
       const now = Date.now();
-      const cacheTime = 5 * 60 * 1000; // 5 minut w milisekundach
+      const cacheTime = 15 * 60 * 1000; // 15 minut w milisekundach
       
-      if (now - lastFetchTime > cacheTime && !isFetching) {
-        fetchUserPermission();
-      } else if (permission === null) {
-        // Jeśli nie ma uprawnień w cache, pobierz je
-        fetchUserPermission();
-      } else {
-        // Jeśli mamy uprawnienia w cache, nie ładuj ponownie
+      // Sprawdź czy są w localStorage
+      const cachedPermission = localStorage.getItem(`permission_${user.email}`);
+      const cachedTime = localStorage.getItem(`permission_time_${user.email}`);
+      
+      if (cachedPermission && cachedTime && (now - parseInt(cachedTime)) < cacheTime) {
+        // Użyj cache z localStorage
+        setPermission(cachedPermission);
         setLoading(false);
+      } else if (!isFetching) {
+        // Pobierz uprawnienia z API
+        fetchUserPermission();
       }
     } else {
       setPermission(null);
       setLoading(false);
     }
-  }, [user, isAuthenticated, lastFetchTime, isFetching, permission]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.email]); // Tylko email jako zależność
 
   const fetchUserPermission = async () => {
     if (!user || isFetching) return;
@@ -44,7 +48,10 @@ const usePermissions = () => {
       if (response.success) {
         setPermission(response.permission);
         setLastFetchTime(Date.now()); // Zaktualizuj czas ostatniego pobrania
-        console.log('✅ Uprawnienia użytkownika:', response.permission);
+        
+        // Zapisz do localStorage
+        localStorage.setItem(`permission_${user.email}`, response.permission);
+        localStorage.setItem(`permission_time_${user.email}`, Date.now().toString());
       } else {
         setError(response.error || 'Błąd pobierania uprawnień');
         setPermission('Demo'); // Domyślnie Demo

@@ -97,9 +97,12 @@ const ReviewFormPage = () => {
       // Jeśli to 5 gwiazdek, przekieruj na Google
       console.log('🔍 Debug - clientInfo:', clientInfo);
       console.log('🔍 Debug - google_card:', clientInfo?.google_card);
+      console.log('🔍 Debug - google_card type:', typeof clientInfo?.google_card);
+      console.log('🔍 Debug - google_card length:', clientInfo?.google_card?.length);
+      console.log('🔍 Debug - google_card trimmed:', clientInfo?.google_card?.trim());
       console.log('🔍 Debug - formData.stars:', formData.stars);
       
-      if (formData.stars === 5 && clientInfo?.google_card) {
+      if (formData.stars === 5 && clientInfo?.google_card && clientInfo.google_card.trim() !== '') {
         console.log('🔗 Przekierowanie na Google Card:', clientInfo.google_card);
         
         // Sprawdź czy to urządzenie mobilne
@@ -177,7 +180,7 @@ const ReviewFormPage = () => {
             <p>Bardzo cenimy sobie Twoje uwagi!</p>
             
             {/* Pokaż przycisk do Google Card jeśli to 5 gwiazdek i jest URL */}
-            {formData.stars === 5 && clientInfo?.google_card && (
+            {formData.stars === 5 && clientInfo?.google_card && clientInfo.google_card.trim() !== '' && (
               <div className="google-card-section">
                 <div className="google-card-content">
                   <h4>🎯 Zostaw oficjalną recenzję na Google</h4>
