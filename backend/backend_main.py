@@ -2247,19 +2247,21 @@ async def submit_review(review_code: str, review_data: ReviewSubmission):
                             else:
                                 company_name = user_data.get("companyName", "Twoja Firma")
                     
-                    # Wyślij email
-                    email_result = await send_review_notification_email(
-                        owner_email=owner_email,
-                        client_name=client_name,
-                        stars=review_data.stars,
-                        review_text=review_data.review,
-                        company_name=company_name
-                    )
+                    # Wyślij email - ZAKOMENTOWANE
+                    # email_result = await send_review_notification_email(
+                    #     owner_email=owner_email,
+                    #     client_name=client_name,
+                    #     stars=review_data.stars,
+                    #     review_text=review_data.review,
+                    #     company_name=company_name
+                    # )
+                    # 
+                    # if email_result["success"]:
+                    #     print(f"✅ Email z powiadomieniem wysłany do: {owner_email}")
+                    # else:
+                    #     print(f"⚠️ Błąd wysyłania emaila: {email_result['message']}")
                     
-                    if email_result["success"]:
-                        print(f"✅ Email z powiadomieniem wysłany do: {owner_email}")
-                    else:
-                        print(f"⚠️ Błąd wysyłania emaila: {email_result['message']}")
+                    print(f"📧 Email z powiadomieniem ZAKOMENTOWANY dla: {owner_email}")
                         
                 except Exception as email_error:
                     print(f"⚠️ Błąd wysyłania emaila z powiadomieniem: {str(email_error)}")
@@ -2827,10 +2829,17 @@ async def submit_contact_form(contact_data: ContactFormRequest):
         if not contact_data.message.strip():
             raise HTTPException(status_code=400, detail="Wiadomość jest wymagana")
         
-        # Wyślij email
-        result = await send_contact_email(contact_data)
+        # Wyślij email - ZAKOMENTOWANE
+        # result = await send_contact_email(contact_data)
+        # 
+        # return ContactFormResponse(**result)
         
-        return ContactFormResponse(**result)
+        # Symuluj sukces bez wysyłania emaila
+        print(f"📧 Email kontaktowy ZAKOMENTOWANY od: {contact_data.name}")
+        return ContactFormResponse(
+            success=True,
+            message="Wiadomość została zapisana. Odpowiemy najszybciej jak to możliwe."
+        )
         
     except HTTPException:
         raise
