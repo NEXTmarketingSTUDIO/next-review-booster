@@ -621,9 +621,25 @@ async def send_contact_email(contact_data: ContactFormRequest) -> dict:
     try:
         # Konfiguracja SMTP dla konta kontakt@next-reviews-booster.com
         smtp_server = os.getenv("SMTP_SERVER")
-        smtp_port = int(os.getenv("SMTP_PORT"))
+        smtp_port_str = os.getenv("SMTP_PORT")
         smtp_username = os.getenv("SMTP_USERNAME")
         smtp_password = os.getenv("SMTP_PASSWORD")
+        
+        # Sprawdź czy wszystkie zmienne środowiskowe są ustawione
+        if not smtp_server:
+            raise ValueError("SMTP_SERVER nie jest ustawiony")
+        if not smtp_port_str:
+            raise ValueError("SMTP_PORT nie jest ustawiony")
+        if not smtp_username:
+            raise ValueError("SMTP_USERNAME nie jest ustawiony")
+        if not smtp_password:
+            raise ValueError("SMTP_PASSWORD nie jest ustawiony")
+        
+        # Konwertuj port na int
+        try:
+            smtp_port = int(smtp_port_str)
+        except ValueError:
+            raise ValueError(f"SMTP_PORT musi być liczbą, otrzymano: {smtp_port_str}")
         
         # Adres docelowy
         to_email = "kontakt@next-reviews-booster.com"
@@ -707,9 +723,25 @@ async def send_review_notification_email(owner_email: str, client_name: str, sta
     try:
         # Konfiguracja SMTP
         smtp_server = os.getenv("SMTP_SERVER")
-        smtp_port = int(os.getenv("SMTP_PORT"))
+        smtp_port_str = os.getenv("SMTP_PORT")
         smtp_username = os.getenv("SMTP_USERNAME")
         smtp_password = os.getenv("SMTP_PASSWORD")
+        
+        # Sprawdź czy wszystkie zmienne środowiskowe są ustawione
+        if not smtp_server:
+            raise ValueError("SMTP_SERVER nie jest ustawiony")
+        if not smtp_port_str:
+            raise ValueError("SMTP_PORT nie jest ustawiony")
+        if not smtp_username:
+            raise ValueError("SMTP_USERNAME nie jest ustawiony")
+        if not smtp_password:
+            raise ValueError("SMTP_PASSWORD nie jest ustawiony")
+        
+        # Konwertuj port na int
+        try:
+            smtp_port = int(smtp_port_str)
+        except ValueError:
+            raise ValueError(f"SMTP_PORT musi być liczbą, otrzymano: {smtp_port_str}")
         
         # Przygotuj wiadomość email
         msg = MIMEMultipart()
@@ -796,6 +828,12 @@ Zespół NEXT reviews BOOSTER
         print(review_text)
         print("-" * 50)
         print(f"Błąd SMTP: {str(e)}")
+        print("-" * 50)
+        print("Sprawdź zmienne środowiskowe:")
+        print(f"SMTP_SERVER: {os.getenv('SMTP_SERVER', 'NIE USTAWIONY')}")
+        print(f"SMTP_PORT: {os.getenv('SMTP_PORT', 'NIE USTAWIONY')}")
+        print(f"SMTP_USERNAME: {os.getenv('SMTP_USERNAME', 'NIE USTAWIONY')}")
+        print(f"SMTP_PASSWORD: {'USTAWIONY' if os.getenv('SMTP_PASSWORD') else 'NIE USTAWIONY'}")
         print("=" * 50)
         
         return {
