@@ -15,7 +15,7 @@ console.log('🔧 API Config:', {
 
 const api = axios.create({
   baseURL: baseURL,
-  timeout: 30000, // Zwiększony timeout dla Firebase (30 sekund)
+  timeout: 60000, // Zwiększony timeout dla Firebase (60 sekund)
   headers: {
     'Content-Type': 'application/json',
   },

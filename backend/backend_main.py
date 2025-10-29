@@ -2016,8 +2016,10 @@ async def get_review_form(review_code: str):
 @app.post("/review/{review_code}", response_model=ReviewResponse)
 async def submit_review(review_code: str, review_data: ReviewSubmission):
     """Zapisz ocenę klienta"""
+    start_time = datetime.now()
     print(f"⭐ Otrzymano ocenę dla kodu: {review_code}")
     print(f"📊 Dane oceny: {review_data.dict()}")
+    print(f"⏰ Start time: {start_time}")
     
     if not db:
         print("❌ Firebase nie jest skonfigurowany")
@@ -2034,8 +2036,9 @@ async def submit_review(review_code: str, review_data: ReviewSubmission):
         is_temp_client = False
         
         # Najpierw sprawdź w kolekcji temp_clients
+        print("🔍 Szukanie w temp_clients...")
         temp_clients_ref = db.collection("temp_clients")
-        temp_docs = temp_clients_ref.where("review_code", "==", review_code).stream()
+        temp_docs = temp_clients_ref.where("review_code", "==", review_code).limit(1).stream()
         
         for doc in temp_docs:
             found_client = doc.to_dict()
@@ -2045,23 +2048,56 @@ async def submit_review(review_code: str, review_data: ReviewSubmission):
         
         # Jeśli nie znaleziono w temp_clients, szukaj w kolekcjach użytkowników
         if not found_client:
-            collections = db.collections()
+            # Zoptymalizowane wyszukiwanie - najpierw spróbuj znaleźć po typowym wzorcu username
+            # Username to email z zamienionymi @ na _at_ i . na _
+            potential_usernames = []
             
-            for collection in collections:
-                collection_name = collection.id
-                if collection_name in ["Dane", "temp_clients"]:
-                    continue
+            # Jeśli review_code zawiera informacje o użytkowniku, spróbuj je wyodrębnić
+            # Na razie przeszukaj tylko kilka najczęściej używanych kolekcji
+            # TODO: W przyszłości można dodać mapowanie review_code -> username
+            common_collections = []  # Pusty na razie, żeby nie marnować czasu
+            
+            for collection_name in common_collections:
+                try:
+                    collection_ref = db.collection(collection_name)
+                    docs = collection_ref.where("review_code", "==", review_code).limit(1).stream()
                     
-                docs = collection.where("review_code", "==", review_code).stream()
+                    for doc in docs:
+                        found_client = doc.to_dict()
+                        found_client["id"] = doc.id
+                        found_collection = collection_name
+                        break
+                    
+                    if found_client:
+                        break
+                except Exception as e:
+                    print(f"⚠️ Błąd przeszukiwania kolekcji {collection_name}: {e}")
+                    continue
+            
+            # Jeśli nadal nie znaleziono, użyj pełnego przeszukiwania (wolne)
+            if not found_client:
+                print("🔍 Uruchamianie pełnego przeszukiwania kolekcji...")
+                collections = db.collections()
                 
-                for doc in docs:
-                    found_client = doc.to_dict()
-                    found_client["id"] = doc.id
-                    found_collection = collection_name
-                    break
-                
-                if found_client:
-                    break
+                for collection in collections:
+                    collection_name = collection.id
+                    if collection_name in ["Dane", "temp_clients", "notifications"]:
+                        continue
+                        
+                    try:
+                        docs = collection.where("review_code", "==", review_code).limit(1).stream()
+                        
+                        for doc in docs:
+                            found_client = doc.to_dict()
+                            found_client["id"] = doc.id
+                            found_collection = collection_name
+                            break
+                        
+                        if found_client:
+                            break
+                    except Exception as e:
+                        print(f"⚠️ Błąd przeszukiwania kolekcji {collection_name}: {e}")
+                        continue
         
         if not found_client:
             print(f"❌ Nie znaleziono klienta z kodem: {review_code}")
@@ -2188,6 +2224,11 @@ async def submit_review(review_code: str, review_data: ReviewSubmission):
         except Exception as notif_error:
             print(f"⚠️ Błąd tworzenia powiadomienia: {str(notif_error)}")
             # Nie przerywaj procesu jeśli powiadomienie się nie powiedzie
+        
+        end_time = datetime.now()
+        duration = (end_time - start_time).total_seconds()
+        print(f"⏰ End time: {end_time}")
+        print(f"⏱️ Total duration: {duration:.2f} seconds")
         
         return ReviewResponse(
             success=True,
