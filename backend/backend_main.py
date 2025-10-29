@@ -660,10 +660,38 @@ Wiadomość wysłana z formularza kontaktowego na stronie next-reviews-booster.c
         print(f"📧 Wysyłanie emaila kontaktowego od: {contact_data.name}")
         print(f"📧 Wysyłanie przez Gmail: {gmail_username}")
         
-        # Użyj Gmail SMTP
-        gmail_server = smtplib.SMTP("smtp.gmail.com", 587, timeout=30)
-        gmail_server.starttls()
-        gmail_server.login(gmail_username, gmail_password)
+        # Spróbuj różne porty Gmail
+        gmail_ports = [
+            (465, smtplib.SMTP_SSL),  # SSL
+            (587, smtplib.SMTP)       # STARTTLS
+        ]
+        
+        gmail_server = None
+        for port, smtp_class in gmail_ports:
+            try:
+                print(f"📧 Próba połączenia z Gmail na porcie {port}")
+                if smtp_class == smtplib.SMTP_SSL:
+                    gmail_server = smtp_class("smtp.gmail.com", port, timeout=30)
+                else:
+                    gmail_server = smtp_class("smtp.gmail.com", port, timeout=30)
+                    gmail_server.starttls()
+                
+                gmail_server.login(gmail_username, gmail_password)
+                print(f"✅ Połączenie Gmail udane na porcie {port}")
+                break
+                
+            except Exception as port_error:
+                print(f"⚠️ Błąd na porcie {port}: {str(port_error)}")
+                if gmail_server:
+                    try:
+                        gmail_server.quit()
+                    except:
+                        pass
+                gmail_server = None
+                continue
+        
+        if not gmail_server:
+            raise Exception("Nie udało się połączyć z Gmail na żadnym porcie")
         
         text = msg.as_string()
         gmail_server.sendmail(gmail_username, to_email, text)
@@ -783,10 +811,38 @@ Zespół NEXT reviews BOOSTER
         
         print(f"📧 Wysyłanie przez Gmail: {gmail_username}")
         
-        # Użyj Gmail SMTP
-        gmail_server = smtplib.SMTP("smtp.gmail.com", 587, timeout=30)
-        gmail_server.starttls()
-        gmail_server.login(gmail_username, gmail_password)
+        # Spróbuj różne porty Gmail
+        gmail_ports = [
+            (465, smtplib.SMTP_SSL),  # SSL
+            (587, smtplib.SMTP)       # STARTTLS
+        ]
+        
+        gmail_server = None
+        for port, smtp_class in gmail_ports:
+            try:
+                print(f"📧 Próba połączenia z Gmail na porcie {port}")
+                if smtp_class == smtplib.SMTP_SSL:
+                    gmail_server = smtp_class("smtp.gmail.com", port, timeout=30)
+                else:
+                    gmail_server = smtp_class("smtp.gmail.com", port, timeout=30)
+                    gmail_server.starttls()
+                
+                gmail_server.login(gmail_username, gmail_password)
+                print(f"✅ Połączenie Gmail udane na porcie {port}")
+                break
+                
+            except Exception as port_error:
+                print(f"⚠️ Błąd na porcie {port}: {str(port_error)}")
+                if gmail_server:
+                    try:
+                        gmail_server.quit()
+                    except:
+                        pass
+                gmail_server = None
+                continue
+        
+        if not gmail_server:
+            raise Exception("Nie udało się połączyć z Gmail na żadnym porcie")
         
         # Zmień nadawcę na Gmail
         msg['From'] = gmail_username
