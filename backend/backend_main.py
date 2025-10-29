@@ -673,7 +673,7 @@ Wiadomość wysłana z formularza kontaktowego na stronie next-reviews-booster.c
         print(f"📧 SMTP Server: {smtp_server}:{smtp_port}")
         
         # Użyj SMTP_SSL dla portu 465 (SSL/TLS)
-        if smtp_port == 465:
+        if smtp_port == 587:
             server = smtplib.SMTP_SSL(smtp_server, smtp_port)
         else:
             server = smtplib.SMTP(smtp_server, smtp_port)
@@ -790,25 +790,65 @@ Zespół NEXT reviews BOOSTER
         print(f"📧 Do: {owner_email}")
         print(f"📧 SMTP Server: {smtp_server}:{smtp_port}")
         
-        # Użyj SMTP_SSL dla portu 465 (SSL/TLS)
-        if smtp_port == 465:
-            server = smtplib.SMTP_SSL(smtp_server, smtp_port)
-        else:
-            server = smtplib.SMTP(smtp_server, smtp_port)
-            server.starttls()
-        
-        server.login(smtp_username, smtp_password)
-        
-        text = msg.as_string()
-        server.sendmail(smtp_username, owner_email, text)
-        server.quit()
-        
-        print(f"✅ Email z powiadomieniem o opinii wysłany pomyślnie do: {owner_email}")
-        
-        return {
-            "success": True,
-            "message": "Email z powiadomieniem został wysłany"
-        }
+        # Najpierw spróbuj z głównym serwerem SMTP (seohost)
+        try:
+            # Użyj SMTP_SSL dla portu 465 (SSL/TLS)
+            if smtp_port == 465:
+                server = smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=15)
+            else:
+                server = smtplib.SMTP(smtp_server, smtp_port, timeout=15)
+                server.starttls()
+            
+            server.settimeout(15)
+            server.login(smtp_username, smtp_password)
+            
+            text = msg.as_string()
+            server.sendmail(smtp_username, owner_email, text)
+            server.quit()
+            
+            print(f"✅ Email z powiadomieniem o opinii wysłany pomyślnie do: {owner_email}")
+            
+            return {
+                "success": True,
+                "message": "Email z powiadomieniem został wysłany"
+            }
+            
+        except Exception as primary_error:
+            print(f"⚠️ Błąd wysyłania emaila przez główny SMTP ({smtp_server}): {str(primary_error)}")
+            print(f"🔄 Próba wysłania przez Gmail jako fallback...")
+            
+            # Fallback na Gmail (nextmarketingstudio@gmail.com)
+            try:
+                gmail_username = os.getenv("GMAIL_USERNAME")
+                gmail_password = os.getenv("GMAIL_APP_PASSWORD")
+                
+                if not gmail_username or not gmail_password:
+                    print(f"❌ Brak konfiguracji Gmail - nie można użyć fallback")
+                    raise primary_error  # Rzuć oryginalny błąd
+                
+                print(f"📧 Próba wysłania przez Gmail: {gmail_username}")
+                gmail_server = smtplib.SMTP("smtp.gmail.com", 587, timeout=15)
+                gmail_server.starttls()
+                gmail_server.settimeout(15)
+                gmail_server.login(gmail_username, gmail_password)
+                
+                # Zmień nadawcę na Gmail (nextmarketingstudio@gmail.com)
+                msg['From'] = gmail_username
+                text = msg.as_string()
+                gmail_server.sendmail(gmail_username, owner_email, text)
+                gmail_server.quit()
+                
+                print(f"✅ Email wysłany pomyślnie przez Gmail do: {owner_email}")
+                
+                return {
+                    "success": True,
+                    "message": "Email z powiadomieniem został wysłany (przez Gmail)"
+                }
+                
+            except Exception as gmail_error:
+                print(f"❌ Błąd wysyłania emaila przez Gmail: {str(gmail_error)}")
+                # Rzuć oryginalny błąd
+                raise primary_error
         
     except Exception as e:
         print(f"❌ Błąd wysyłania emaila z powiadomieniem: {str(e)}")
@@ -2291,11 +2331,6 @@ async def generate_company_qr_code(username: str, request: QRCodeRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Błąd podczas generowania kodu QR: {str(e)}")
-
-
-
-
-
 
 
 @app.get("/qrcode/{review_code}")
