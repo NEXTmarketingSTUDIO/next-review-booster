@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import useAuth from '../hooks/useAuth';
+import usePermissions from '../hooks/usePermissions';
 import apiService from '../services/api';
 import './AdminPage.css';
 
 const AdminPage = () => {
   const { user } = useAuth();
+  const { isAdmin, loading: permissionsLoading, permission } = usePermissions();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,9 +29,18 @@ const AdminPage = () => {
   });
 
   useEffect(() => {
-    fetchUsers();
-    fetchExchangeRate();
-  }, []);
+    // Sprawdź uprawnienia przed wykonaniem jakichkolwiek operacji
+    if (!permissionsLoading && !isAdmin()) {
+      setError('Brak uprawnień administratora');
+      setLoading(false);
+      return;
+    }
+    
+    if (!permissionsLoading && isAdmin()) {
+      fetchUsers();
+      fetchExchangeRate();
+    }
+  }, [permissionsLoading, isAdmin]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -306,6 +317,40 @@ Dziękujemy!`;
       charsPerSegment
     };
   };
+
+  // Sprawdź uprawnienia przed renderowaniem
+  if (permissionsLoading) {
+    return (
+      <div className="admin-page">
+        <div className="admin-loading">
+          <div className="loading-spinner"></div>
+          <p>Sprawdzanie uprawnień administratora...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin()) {
+    return (
+      <div className="admin-page">
+        <div className="admin-access-denied">
+          <div className="access-denied-content">
+            <h1>🚫 Brak uprawnień</h1>
+            <p>Nie masz uprawnień administratora do przeglądania tej strony.</p>
+            <p>Twoja aktualna rola: <strong>{permission || 'Nieznana'}</strong></p>
+            <div className="access-denied-actions">
+              <button 
+                className="btn btn-primary" 
+                onClick={() => window.history.back()}
+              >
+                ← Wróć
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-page">

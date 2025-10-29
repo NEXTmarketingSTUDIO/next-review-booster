@@ -40,6 +40,14 @@ Dziękujemy!`,
 
   useEffect(() => {
     if (user?.email) {
+      // Prefill email od razu po dostępności użytkownika, jeśli brak w stanie
+      setSettings(prev => ({
+        ...prev,
+        userData: {
+          ...prev.userData,
+          email: prev.userData.email || user.email || ''
+        }
+      }));
       fetchSettings();
     }
   }, [user]);
@@ -57,9 +65,26 @@ Dziękujemy!`,
       
       const response = await apiService.getUserSettings(username);
       console.log('⚙️ Ustawienia otrzymane:', response);
+      console.log('📧 Email z użytkownika:', user.email);
+      console.log('📧 Email z backendu:', response.settings?.userData?.email);
       
       if (response.settings) {
-        setSettings(response.settings);
+        // Scal ustawienia z backendu z domyślnymi i upewnij się, że email jest ustawiony
+        const finalEmail = (response.settings.userData && response.settings.userData.email && response.settings.userData.email.trim() !== '')
+          ? response.settings.userData.email
+          : (user.email || '');
+        
+        console.log('📧 Finalny email do ustawienia:', finalEmail);
+        
+        setSettings(prev => ({
+          ...prev,
+          ...response.settings,
+          userData: {
+            ...prev.userData,
+            ...(response.settings.userData || {}),
+            email: finalEmail
+          }
+        }));
       } else {
         // Ustaw domyślne wartości
         setSettings(prev => ({

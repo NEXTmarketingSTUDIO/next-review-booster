@@ -716,7 +716,6 @@
 
 /* Specjalny styl dla karty segmentów */
 .admin-stat-segments {
-  background: linear-gradient(135deg, #17a2b8, #007bff);
   color: white;
   border: none;
 }
@@ -744,4 +743,97 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Style dla zabezpieczeń uprawnień */
+.admin-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+}
+
+.admin-loading .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f4f6;
+  border-top: 4px solid #fca212;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+.admin-loading p {
+  color: #6b7280;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.admin-access-denied {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 2rem;
+}
+
+.access-denied-content {
+  background: white;
+  padding: 3rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 500px;
+  border: 1px solid #e5e7eb;
+}
+
+.access-denied-content h1 {
+  color: #dc2626;
+  font-size: 2rem;
+  margin: 0 0 1rem 0;
+  font-weight: 700;
+}
+
+.access-denied-content p {
+  color: #6b7280;
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+.access-denied-content p strong {
+  color: #374151;
+  font-weight: 600;
+}
+
+.access-denied-actions {
+  margin-top: 2rem;
+}
+
+.access-denied-actions .btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.2s ease;
+}
+
+.access-denied-actions .btn-primary {
+  background: #fca212;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.access-denied-actions .btn-primary:hover {
+  background: #fca212;
+  transform: translateY(-1px);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
