@@ -251,6 +251,24 @@
   flex-shrink: 0;
 }
 
+.notification-delete-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.notification-delete-btn:hover {
+  background: rgba(0,0,0,0.03);
+  color: #ef4444;
+}
+
 .notifications-footer {
   padding: 1rem 1.25rem;
   border-top: 1px solid #e5e7eb;

@@ -3535,6 +3535,69 @@ async def create_notification(user_email: str, notification_data: dict):
         raise HTTPException(status_code=500, detail=f"Błąd tworzenia powiadomienia: {str(e)}")
 
 
+@app.delete("/notifications/{user_email}/{notification_id}", response_model=NotificationReadResponse)
+async def delete_notification(user_email: str, notification_id: str):
+    """Usuń pojedyncze powiadomienie użytkownika"""
+    print(f"🗑️ Usuwanie powiadomienia: {notification_id} dla {user_email}")
+
+    if not db:
+        print("❌ Firebase nie jest skonfigurowany")
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+
+    try:
+        notification_ref = db.collection("notifications").document(notification_id)
+        doc = notification_ref.get()
+
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail="Powiadomienie nie istnieje")
+
+        data = doc.to_dict()
+        if data.get("user_email") != user_email:
+            raise HTTPException(status_code=403, detail="Brak uprawnień do usunięcia tego powiadomienia")
+
+        notification_ref.delete()
+        print(f"✅ Powiadomienie {notification_id} usunięte")
+
+        return NotificationReadResponse(
+            success=True,
+            message="Powiadomienie usunięte"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Błąd usuwania powiadomienia: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd usuwania powiadomienia: {str(e)}")
+
+
+@app.delete("/notifications/{user_email}", response_model=NotificationReadResponse)
+async def delete_all_notifications(user_email: str):
+    """Usuń wszystkie powiadomienia użytkownika"""
+    print(f"🗑️ Usuwanie wszystkich powiadomień dla: {user_email}")
+
+    if not db:
+        print("❌ Firebase nie jest skonfigurowany")
+        raise HTTPException(status_code=500, detail="Firebase nie jest skonfigurowany")
+
+    try:
+        notifications_ref = db.collection("notifications").where("user_email", "==", user_email)
+        docs = notifications_ref.stream()
+
+        batch = db.batch()
+        count = 0
+        for doc in docs:
+            batch.delete(db.collection("notifications").document(doc.id))
+            count += 1
+
+        if count > 0:
+            batch.commit()
+
+        print(f"✅ Usunięto {count} powiadomień dla {user_email}")
+        return NotificationReadResponse(success=True, message=f"Usunięto {count} powiadomień")
+    except Exception as e:
+        print(f"❌ Błąd usuwania wszystkich powiadomień: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Błąd usuwania wszystkich powiadomień: {str(e)}")
+
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     

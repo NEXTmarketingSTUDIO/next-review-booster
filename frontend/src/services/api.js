@@ -517,6 +517,42 @@ export const apiService = {
         error: error.response?.data?.detail || 'Błąd oznaczania wszystkich powiadomień'
       };
     }
+  },
+
+  async deleteNotification(userEmail, notificationId) {
+    console.log('🗑️ API: Usuwanie powiadomienia:', { userEmail, notificationId });
+    try {
+      const response = await api.delete(`/notifications/${encodeURIComponent(userEmail)}/${notificationId}`);
+      console.log('✅ API: Powiadomienie usunięte:', response.data);
+      return {
+        success: true,
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error('❌ API: Błąd usuwania powiadomienia:', error);
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Błąd usuwania powiadomienia'
+      };
+    }
+  },
+
+  async deleteAllNotifications(userEmail) {
+    console.log('🗑️ API: Usuwanie wszystkich powiadomień:', userEmail);
+    try {
+      const response = await api.delete(`/notifications/${encodeURIComponent(userEmail)}`);
+      console.log('✅ API: Wszystkie powiadomienia usunięte:', response.data);
+      return {
+        success: true,
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error('❌ API: Błąd usuwania wszystkich powiadomień:', error);
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Błąd usuwania wszystkich powiadomień'
+      };
+    }
   }
 
 };

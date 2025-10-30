@@ -11,7 +11,9 @@ const Notifications = () => {
     loading, 
     markAsRead, 
     markAllAsRead, 
-    fetchNotifications 
+    fetchNotifications,
+    deleteNotification,
+    deleteAllNotifications 
   } = useNotifications();
   
   const [isOpen, setIsOpen] = useState(false);
@@ -133,9 +135,20 @@ const Notifications = () => {
                         {notification.message}
                       </div>
                       <div className="notification-time">
-                        {formatTimeAgo(notification.createdAt)}
+                        {formatTimeAgo(notification.created_at || notification.createdAt)}
                       </div>
                     </div>
+                    <button
+                      className="notification-delete-btn"
+                      aria-label="Usuń powiadomienie"
+                      title="Usuń"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteNotification(notification.id);
+                      }}
+                    >
+                      ✖
+                    </button>
                     {!notification.read && (
                       <div className="notification-dot"></div>
                     )}
@@ -150,11 +163,10 @@ const Notifications = () => {
               <button 
                 className="view-all-btn"
                 onClick={() => {
-                  // TODO: Przekieruj do strony ze wszystkimi powiadomieniami
-                  console.log('Przekierowanie do wszystkich powiadomień');
+                  deleteAllNotifications();
                 }}
               >
-                Zobacz wszystkie
+                Usuń wszystkie
               </button>
             </div>
           )}

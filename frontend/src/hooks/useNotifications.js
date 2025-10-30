@@ -102,6 +102,42 @@ const useNotifications = () => {
     setNotifications(prev => prev.filter(notification => notification.id !== notificationId));
   }, []);
 
+  // Usuń powiadomienie w API i z lokalnego stanu
+  const deleteNotification = useCallback(async (notificationId) => {
+    if (!user?.email) return;
+
+    try {
+      console.log('🗑️ Usuwanie powiadomienia:', notificationId);
+      const response = await apiService.deleteNotification(user.email, notificationId);
+      if (response.success) {
+        setNotifications(prev => prev.filter(n => n.id !== notificationId));
+        console.log('✅ Powiadomienie usunięte');
+      } else {
+        console.error('❌ Błąd usuwania powiadomienia:', response.error);
+      }
+    } catch (err) {
+      console.error('❌ Błąd usuwania powiadomienia:', err);
+    }
+  }, [user?.email]);
+
+  // Usuń wszystkie powiadomienia użytkownika
+  const deleteAllNotifications = useCallback(async () => {
+    if (!user?.email || notifications.length === 0) return;
+
+    try {
+      console.log('🗑️ Usuwanie wszystkich powiadomień');
+      const response = await apiService.deleteAllNotifications(user.email);
+      if (response.success) {
+        setNotifications([]);
+        console.log('✅ Wszystkie powiadomienia usunięte');
+      } else {
+        console.error('❌ Błąd usuwania wszystkich powiadomień:', response.error);
+      }
+    } catch (err) {
+      console.error('❌ Błąd usuwania wszystkich powiadomień:', err);
+    }
+  }, [user?.email, notifications.length]);
+
   // Pobierz powiadomienia przy załadowaniu użytkownika i co 30 sekund
   useEffect(() => {
     if (!user?.email) {
@@ -130,7 +166,9 @@ const useNotifications = () => {
     markAsRead,
     markAllAsRead,
     addNotification,
-    removeNotification
+    removeNotification,
+    deleteNotification,
+    deleteAllNotifications
   };
 };
 
