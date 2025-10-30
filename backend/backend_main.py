@@ -2482,8 +2482,13 @@ Z poważaniem,
         base_url = os.getenv("FRONTEND_URL", "https://next-reviews-booster-app.web.app")
         review_url = f"{base_url}/review/{review_code}"
         
-        # Przygotuj wiadomość SMS
-        message = message_template.replace("[LINK]", review_url).replace("[NAZWA_FIRMY]", company_name)
+        # Przygotuj wiadomość SMS (podstaw zmienne)
+        message = (
+            message_template
+            .replace("[LINK]", review_url)
+            .replace("[NAZWA_FIRMY]", company_name or "")
+            .replace("[KLIENT]", client_name or "")
+        )
         
         # Wyślij SMS
         result = await send_sms(client_phone, message, twilio_config, username)
@@ -2722,8 +2727,13 @@ Z poważaniem,
                 base_url = os.getenv("FRONTEND_URL", "https://next-reviews-booster-app.web.app")
                 review_url = f"{base_url}/review/{client['review_code']}"
                 
-                # Przygotuj wiadomość SMS
-                message = message_template.replace("[LINK]", review_url).replace("[NAZWA_FIRMY]", company_name)
+                # Przygotuj wiadomość SMS (podstaw zmienne)
+                message = (
+                    message_template
+                    .replace("[LINK]", review_url)
+                    .replace("[NAZWA_FIRMY]", company_name or "")
+                    .replace("[KLIENT]", client['name'] or "")
+                )
                 
                 # Wyślij SMS
                 print(f"📱 Wysyłanie SMS do: {client['name']} ({client['phone']})")

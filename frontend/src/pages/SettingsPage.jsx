@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { apiService } from '../services/api';
 import useAuth from '../hooks/useAuth';
 import { generateUsername } from '../utils/userUtils';
@@ -122,7 +122,8 @@ Dziękujemy!`,
     if (settings.messaging.messageTemplate) {
       const processedMessage = settings.messaging.messageTemplate
         .replace(/\[LINK\]/g, 'next-reviews-booster.com/review/vqyrdqrhf4')
-        .replace(/\[NAZWA_FIRMY\]/g, settings.userData.companyName || '[NAZWA_FIRMY]');
+        .replace(/\[NAZWA_FIRMY\]/g, settings.userData.companyName || '[NAZWA_FIRMY]')
+        .replace(/\[KLIENT\]/g, 'Jan');
       
       if (processedMessage.length > 200) {
         alert(`❌ Treść wiadomości po podstawieniu zmiennych nie może przekraczać 200 znaków! Aktualna długość: ${processedMessage.length} znaków.`);
@@ -151,7 +152,8 @@ Dziękujemy!`,
       // Podstaw zmienne na rzeczywiste wartości dla walidacji
       const processedValue = value
         .replace(/\[LINK\]/g, 'next-reviews-booster.com/review/vqyrdqrhf4')
-        .replace(/\[NAZWA_FIRMY\]/g, settings.userData.companyName || '[NAZWA_FIRMY]');
+        .replace(/\[NAZWA_FIRMY\]/g, settings.userData.companyName || '[NAZWA_FIRMY]')
+        .replace(/\[KLIENT\]/g, 'Jan Kowalski');
       
       // Jeśli wiadomość po podstawieniu przekracza 200 znaków, obetnij szablon
       if (processedValue.length > 200) {
@@ -162,8 +164,14 @@ Dziękujemy!`,
         // Oblicz ile znaków można dodać do szablonu
         const linkCount = (value.match(/\[LINK\]/g) || []).length;
         const companyCount = (value.match(/\[NAZWA_FIRMY\]/g) || []).length;
+        const clientCount = (value.match(/\[KLIENT\]/g) || []).length;
         
-        const maxTemplateLength = 200 - (linkCount * linkLength) - (companyCount * companyNameLength) + (linkCount * 6) + (companyCount * 12);
+        const clientNameLength = 'Jan Kowalski'.length;
+        const maxTemplateLength = 200 
+          - (linkCount * linkLength) 
+          - (companyCount * companyNameLength)
+          - (clientCount * clientNameLength)
+          + (linkCount * 6) + (companyCount * 12) + (clientCount * 9);
         
         if (value.length > maxTemplateLength) {
           value = value.substring(0, maxTemplateLength);
@@ -212,7 +220,8 @@ Dziękujemy!`,
     // Podstaw zmienne na rzeczywiste wartości
     const processedMessage = message
       .replace(/\[LINK\]/g, 'next-reviews-booster.com/review/vqyrdqrhf4')
-      .replace(/\[NAZWA_FIRMY\]/g, settings.userData.companyName || '[NAZWA_FIRMY]');
+      .replace(/\[NAZWA_FIRMY\]/g, settings.userData.companyName || '[NAZWA_FIRMY]')
+      .replace(/\[KLIENT\]/g, 'Jan Kowalski');
 
     // Sprawdź czy wiadomość zawiera polskie znaki
     const polishCharsRegex = /[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/;
@@ -241,6 +250,29 @@ Dziękujemy!`,
 
   // Oblicz koszt dla aktualnej wiadomości
   const smsCost = calculateSMSCost(settings.messaging.messageTemplate);
+
+  // Ref do pola tekstowego oraz funkcja wstawiania tokenów
+  const messageTextareaRef = useRef(null);
+  const insertToken = (token) => {
+    const textarea = messageTextareaRef.current;
+    if (!textarea) {
+      handleInputChange('messaging', 'messageTemplate', `${settings.messaging.messageTemplate}${token}`);
+      return;
+    }
+
+    const start = textarea.selectionStart || settings.messaging.messageTemplate.length;
+    const end = textarea.selectionEnd || settings.messaging.messageTemplate.length;
+    const value = settings.messaging.messageTemplate;
+    const newValue = value.slice(0, start) + token + value.slice(end);
+    handleInputChange('messaging', 'messageTemplate', newValue);
+
+    // Ustaw fokus i kursor po wstawieniu
+    setTimeout(() => {
+      textarea.focus();
+      const cursorPos = start + token.length;
+      textarea.setSelectionRange(cursorPos, cursorPos);
+    }, 0);
+  };
 
 
   if (loading) {
@@ -381,8 +413,14 @@ Dziękujemy!`,
 
             <div className="form-group">
               <label htmlFor="messageTemplate">Treść wiadomości</label>
+              <div className="template-toolbar">
+                <button type="button" className="token-btn" onClick={() => insertToken(' [KLIENT] ')}>Imię klienta</button>
+                <button type="button" className="token-btn" onClick={() => insertToken(' [NAZWA_FIRMY] ')}>Nazwa firmy</button>
+                <button type="button" className="token-btn" onClick={() => insertToken(' [LINK] ')}>Link do opinii</button>
+              </div>
               <textarea
                 id="messageTemplate"
+                ref={messageTextareaRef}
                 value={settings.messaging.messageTemplate}
                 onChange={(e) => handleInputChange('messaging', 'messageTemplate', e.target.value)}
                 rows="12"
@@ -441,7 +479,7 @@ Dziękujemy!`,
                 )}
               </div>
               <small className="help-text">
-                Dostępne zmienne: [LINK] - link do opinii, [NAZWA_FIRMY] - nazwa Twojej firmy
+                Dostępne zmienne: [LINK] - link do opinii, [NAZWA_FIRMY] - nazwa Twojej firmy, [KLIENT] - imię klienta
               </small>
             </div>
 

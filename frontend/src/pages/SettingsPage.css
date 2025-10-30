@@ -218,6 +218,29 @@
   min-height: 120px;
 }
 
+/* Toolbar ze zmiennymi szablonu */
+.template-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.token-btn {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  color: #374151;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.token-btn:hover {
+  background: #eef2f7;
+  border-color: #d1d5db;
+}
+
 /* Wskaźnik liczby znaków */
 .character-count {
   text-align: right;
