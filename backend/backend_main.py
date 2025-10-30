@@ -221,12 +221,7 @@ Dziękujemy!""",
                 autoSendEnabled=False,
                 sendTime={"hour": 10, "minute": 0}
             ),
-            twilio=TwilioSettings(
-                account_sid="ACfc0d69a38f5b328bc7783fa5829336b2",
-                auth_token="611da96accd9e1d3c95a37a5c43f7856",
-                phone_number="",
-                messaging_service_sid="MG12792d6acd38447e77756a5ceb2c75f1"
-            ),
+            twilio=get_default_twilio_settings(),
             permission=UserPermission.DEMO  
         )
         
@@ -255,6 +250,16 @@ except ImportError:
 
 # Inicjalizacja Twilio - będzie inicjalizowany per użytkownik z Firebase
 twilio_client = None
+
+# Funkcja pomocnicza do pobierania domyślnych wartości Twilio ze zmiennych środowiskowych
+def get_default_twilio_settings():
+    """Pobierz domyślne ustawienia Twilio ze zmiennych środowiskowych"""
+    return TwilioSettings(
+        account_sid=os.getenv("TWILIO_ACCOUNT_SID", ""),
+        auth_token=os.getenv("TWILIO_AUTH_TOKEN", ""),
+        phone_number=os.getenv("TWILIO_PHONE_NUMBER", ""),
+        messaging_service_sid=os.getenv("TWILIO_MESSAGING_SERVICE_SID", "")
+    )
 
 # Inicjalizacja Firebase Admin
 try:
@@ -1476,12 +1481,7 @@ Dziękujemy!""",
                 sendTime={"hour": 10, "minute": 0},
                 smsLimit=get_sms_limit_for_permission(UserPermission.DEMO)
             ),
-                    twilio=TwilioSettings(
-                        account_sid="ACfc0d69a38f5b328bc7783fa5829336b2",
-                        auth_token="3d5761074605ac590f0c18494820d15f",
-                        phone_number="",
-                        messaging_service_sid="MG12792d6acd38447e77756a5ceb2c75f1"
-                    ),
+                    twilio=get_default_twilio_settings(),
                     permission=UserPermission.DEMO
                 )
                 return UserSettingsResponse(settings=default_settings)
@@ -1834,12 +1834,7 @@ Dziękujemy!""",
                 sendTime={"hour": 10, "minute": 0},
                 smsLimit=get_sms_limit_for_permission(UserPermission.DEMO)
             ),
-            twilio=TwilioSettings(
-                account_sid="ACfc0d69a38f5b328bc7783fa5829336b2",
-                auth_token="3d5761074605ac590f0c18494820d15f",
-                phone_number="",
-                messaging_service_sid="MG12792d6acd38447e77756a5ceb2c75f1"
-            ),
+            twilio=get_default_twilio_settings(),
             permission=UserPermission.DEMO  # Nowi użytkownicy domyślnie mają uprawnienia Demo
         )
         

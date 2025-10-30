@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { auth } from '../config/firebase';
 
 // Konfiguracja axios dla komunikacji z FastAPI
 const baseURL = import.meta.env.VITE_API_URL || (import.meta.env.PROD 
@@ -50,12 +51,21 @@ api.interceptors.response.use(
   }
 );
 
-// Interceptor dla requestów - dodaje token autoryzacji jeśli istnieje
+// Interceptor dla requestów - automatycznie pobiera świeży token Firebase
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  async (config) => {
+    // Pobierz token Firebase tylko jeśli użytkownik jest zalogowany
+    if (auth.currentUser) {
+      try {
+        // getIdToken() automatycznie odświeża token jeśli jest blisko wygaśnięcia
+        // Firebase SDK automatycznie zarządza cache i odświeżaniem
+        const token = await auth.currentUser.getIdToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.error('❌ Błąd pobierania tokenu Firebase:', error);
+      }
     }
     return config;
   },
@@ -69,11 +79,30 @@ api.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
       // Token wygasł lub nieprawidłowy
-      localStorage.removeItem('token');
-      // Można dodać przekierowanie na stronę logowania
+      console.log('⚠️ Token wygasł, próba ponownego logowania...');
+      
+      // Spróbuj pobrać nowy token
+      if (auth.currentUser) {
+        try {
+          // Wymuś odświeżenie tokenu
+          const newToken = await auth.currentUser.getIdToken(true);
+          console.log('✅ Nowy token pobrany');
+          
+          // Spróbuj ponownie wykonać żądanie z nowym tokenem
+          const config = error.config;
+          config.headers.Authorization = `Bearer ${newToken}`;
+          return api.request(config);
+        } catch (refreshError) {
+          console.error('❌ Nie udało się odświeżyć tokenu:', refreshError);
+          // Wyloguj użytkownika jeśli nie można odświeżyć tokenu
+          if (auth.currentUser) {
+            await auth.signOut();
+          }
+        }
+      }
     }
     return Promise.reject(error);
   }

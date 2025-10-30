@@ -46,8 +46,24 @@ services:
         fromService:
           type: secret
           name: gmail-app-password
-- key: FRONTEND_URL
-  value: https://next-reviews-booster-app.web.app
+      - key: TWILIO_ACCOUNT_SID
+        fromService:
+          type: secret
+          name: twilio-account-sid
+      - key: TWILIO_AUTH_TOKEN
+        fromService:
+          type: secret
+          name: twilio-auth-token
+      - key: TWILIO_PHONE_NUMBER
+        fromService:
+          type: secret
+          name: twilio-phone-number
+      - key: TWILIO_MESSAGING_SERVICE_SID
+        fromService:
+          type: secret
+          name: twilio-messaging-service-sid
+      - key: FRONTEND_URL
+        value: https://next-reviews-booster-app.web.app
     healthCheckPath: /health
     autoDeploy: true
     branch: master
